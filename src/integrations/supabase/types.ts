@@ -14,16 +14,400 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      alerts: {
+        Row: {
+          acknowledged: boolean
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          current_value: number | null
+          detected_at: string
+          id: string
+          message: string | null
+          metric_name: string
+          pct_change: number | null
+          previous_value: number | null
+          restaurant_id: string
+          severity: Database["public"]["Enums"]["alert_severity"]
+        }
+        Insert: {
+          acknowledged?: boolean
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          current_value?: number | null
+          detected_at?: string
+          id?: string
+          message?: string | null
+          metric_name: string
+          pct_change?: number | null
+          previous_value?: number | null
+          restaurant_id: string
+          severity: Database["public"]["Enums"]["alert_severity"]
+        }
+        Update: {
+          acknowledged?: boolean
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          current_value?: number | null
+          detected_at?: string
+          id?: string
+          message?: string | null
+          metric_name?: string
+          pct_change?: number | null
+          previous_value?: number | null
+          restaurant_id?: string
+          severity?: Database["public"]["Enums"]["alert_severity"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alerts_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_logs: {
+        Row: {
+          action: Database["public"]["Enums"]["audit_action"]
+          created_at: string
+          id: string
+          metadata: Json | null
+          target_id: string | null
+          target_type: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["audit_action"]
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          target_id?: string | null
+          target_type?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["audit_action"]
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          target_id?: string | null
+          target_type?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      daily_metrics: {
+        Row: {
+          ad_ctr: number | null
+          ads_impressions: number | null
+          ads_orders: number | null
+          ads_roi: number | null
+          ads_spend: number | null
+          average_order_value: number | null
+          cart_to_order: number | null
+          created_at: string
+          date: string
+          delivered_orders: number | null
+          discount_given: number | null
+          effective_discount: number | null
+          gross_sales_from_offers: number | null
+          id: string
+          impressions: number | null
+          menu_to_cart: number | null
+          menu_to_order: number | null
+          orders_with_offers: number | null
+          restaurant_id: string
+          sales: number | null
+          sales_from_ads: number | null
+          updated_at: string
+        }
+        Insert: {
+          ad_ctr?: number | null
+          ads_impressions?: number | null
+          ads_orders?: number | null
+          ads_roi?: number | null
+          ads_spend?: number | null
+          average_order_value?: number | null
+          cart_to_order?: number | null
+          created_at?: string
+          date: string
+          delivered_orders?: number | null
+          discount_given?: number | null
+          effective_discount?: number | null
+          gross_sales_from_offers?: number | null
+          id?: string
+          impressions?: number | null
+          menu_to_cart?: number | null
+          menu_to_order?: number | null
+          orders_with_offers?: number | null
+          restaurant_id: string
+          sales?: number | null
+          sales_from_ads?: number | null
+          updated_at?: string
+        }
+        Update: {
+          ad_ctr?: number | null
+          ads_impressions?: number | null
+          ads_orders?: number | null
+          ads_roi?: number | null
+          ads_spend?: number | null
+          average_order_value?: number | null
+          cart_to_order?: number | null
+          created_at?: string
+          date?: string
+          delivered_orders?: number | null
+          discount_given?: number | null
+          effective_discount?: number | null
+          gross_sales_from_offers?: number | null
+          id?: string
+          impressions?: number | null
+          menu_to_cart?: number | null
+          menu_to_order?: number | null
+          orders_with_offers?: number | null
+          restaurant_id?: string
+          sales?: number | null
+          sales_from_ads?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_metrics_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      raw_imports: {
+        Row: {
+          created_at: string
+          date: string | null
+          id: string
+          raw_row: Json
+          restaurant_id: string | null
+          uploaded_file_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          date?: string | null
+          id?: string
+          raw_row: Json
+          restaurant_id?: string | null
+          uploaded_file_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          date?: string | null
+          id?: string
+          raw_row?: Json
+          restaurant_id?: string | null
+          uploaded_file_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "raw_imports_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "raw_imports_uploaded_file_id_fkey"
+            columns: ["uploaded_file_id"]
+            isOneToOne: false
+            referencedRelation: "uploaded_files"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reports: {
+        Row: {
+          format: Database["public"]["Enums"]["report_format"]
+          generated_at: string
+          generated_by: string | null
+          id: string
+          period_end: string
+          period_start: string
+          report_type: Database["public"]["Enums"]["report_type"]
+          restaurant_ids: string[]
+          storage_path: string | null
+        }
+        Insert: {
+          format: Database["public"]["Enums"]["report_format"]
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          period_end: string
+          period_start: string
+          report_type: Database["public"]["Enums"]["report_type"]
+          restaurant_ids?: string[]
+          storage_path?: string | null
+        }
+        Update: {
+          format?: Database["public"]["Enums"]["report_format"]
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          period_end?: string
+          period_start?: string
+          report_type?: Database["public"]["Enums"]["report_type"]
+          restaurant_ids?: string[]
+          storage_path?: string | null
+        }
+        Relationships: []
+      }
+      restaurants: {
+        Row: {
+          archive_reason: string | null
+          archived_at: string | null
+          archived_by: string | null
+          created_at: string
+          display_name: string
+          id: string
+          is_archived: boolean
+          name: string
+          platform: Database["public"]["Enums"]["platform_type"]
+          updated_at: string
+        }
+        Insert: {
+          archive_reason?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
+          created_at?: string
+          display_name: string
+          id?: string
+          is_archived?: boolean
+          name: string
+          platform?: Database["public"]["Enums"]["platform_type"]
+          updated_at?: string
+        }
+        Update: {
+          archive_reason?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
+          created_at?: string
+          display_name?: string
+          id?: string
+          is_archived?: boolean
+          name?: string
+          platform?: Database["public"]["Enums"]["platform_type"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      uploaded_files: {
+        Row: {
+          created_at: string
+          error_details: Json | null
+          file_name: string
+          file_size: number | null
+          id: string
+          row_count: number | null
+          status: Database["public"]["Enums"]["upload_status"]
+          summary: Json | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_details?: Json | null
+          file_name: string
+          file_size?: number | null
+          id?: string
+          row_count?: number | null
+          status?: Database["public"]["Enums"]["upload_status"]
+          summary?: Json | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_details?: Json | null
+          file_name?: string
+          file_size?: number | null
+          id?: string
+          row_count?: number | null
+          status?: Database["public"]["Enums"]["upload_status"]
+          summary?: Json | null
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      alert_severity: "critical" | "warning" | "info"
+      app_role: "admin" | "viewer"
+      audit_action:
+        | "restaurant_created"
+        | "restaurant_edited"
+        | "restaurant_archived"
+        | "restaurant_restored"
+        | "restaurant_deleted"
+        | "file_uploaded"
+        | "report_generated"
+        | "alert_acknowledged"
+        | "user_role_changed"
+      platform_type: "zomato" | "swiggy"
+      report_format: "pdf" | "xlsx" | "csv"
+      report_type: "daily" | "weekly" | "fortnightly" | "monthly"
+      upload_status: "pending" | "processing" | "processed" | "failed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +534,24 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      alert_severity: ["critical", "warning", "info"],
+      app_role: ["admin", "viewer"],
+      audit_action: [
+        "restaurant_created",
+        "restaurant_edited",
+        "restaurant_archived",
+        "restaurant_restored",
+        "restaurant_deleted",
+        "file_uploaded",
+        "report_generated",
+        "alert_acknowledged",
+        "user_role_changed",
+      ],
+      platform_type: ["zomato", "swiggy"],
+      report_format: ["pdf", "xlsx", "csv"],
+      report_type: ["daily", "weekly", "fortnightly", "monthly"],
+      upload_status: ["pending", "processing", "processed", "failed"],
+    },
   },
 } as const
