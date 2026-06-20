@@ -11,6 +11,6 @@ export async function logAudit(action: Action, targetType: string, targetId: str
     action,
     target_type: targetType,
     target_id: targetId,
-    metadata: metadata ?? null,
+    metadata: (metadata ?? null) as never,
   });
 }
