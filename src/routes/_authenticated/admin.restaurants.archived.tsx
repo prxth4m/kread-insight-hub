@@ -36,7 +36,7 @@ function ArchivedPage() {
       is_archived: false, archived_at: null, archived_by: null, archive_reason: null,
     }).eq("id", id);
     if (error) return toast.error(error.message);
-    await logAudit("restaurant_restored", "restaurant", id, null);
+    await logAudit("restaurant_restored", "restaurant", id);
     toast.success("Restaurant restored");
     qc.invalidateQueries({ queryKey: ["archived-restaurants"] });
   };

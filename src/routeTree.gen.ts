@@ -16,8 +16,14 @@ import { Route as AuthenticatedUploadRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCompareRouteImport } from './routes/_authenticated/compare'
+import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedRestaurantsIndexRouteImport } from './routes/_authenticated/restaurants.index'
+import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedRestaurantsIdRouteImport } from './routes/_authenticated/restaurants.$id'
+import { Route as AuthenticatedAdminRestaurantsRouteImport } from './routes/_authenticated/admin.restaurants'
+import { Route as AuthenticatedAdminAuditLogRouteImport } from './routes/_authenticated/admin.audit-log'
+import { Route as AuthenticatedAdminRestaurantsIndexRouteImport } from './routes/_authenticated/admin.restaurants.index'
+import { Route as AuthenticatedAdminRestaurantsArchivedRouteImport } from './routes/_authenticated/admin.restaurants.archived'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -53,28 +59,68 @@ const AuthenticatedCompareRoute = AuthenticatedCompareRouteImport.update({
   path: '/compare',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedRestaurantsIndexRoute =
   AuthenticatedRestaurantsIndexRouteImport.update({
     id: '/restaurants/',
     path: '/restaurants/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
 const AuthenticatedRestaurantsIdRoute =
   AuthenticatedRestaurantsIdRouteImport.update({
     id: '/restaurants/$id',
     path: '/restaurants/$id',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminRestaurantsRoute =
+  AuthenticatedAdminRestaurantsRouteImport.update({
+    id: '/restaurants',
+    path: '/restaurants',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminAuditLogRoute =
+  AuthenticatedAdminAuditLogRouteImport.update({
+    id: '/audit-log',
+    path: '/audit-log',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminRestaurantsIndexRoute =
+  AuthenticatedAdminRestaurantsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAdminRestaurantsRoute,
+  } as any)
+const AuthenticatedAdminRestaurantsArchivedRoute =
+  AuthenticatedAdminRestaurantsArchivedRouteImport.update({
+    id: '/archived',
+    path: '/archived',
+    getParentRoute: () => AuthenticatedAdminRestaurantsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/compare': typeof AuthenticatedCompareRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/reports': typeof AuthenticatedReportsRoute
   '/upload': typeof AuthenticatedUploadRoute
+  '/admin/audit-log': typeof AuthenticatedAdminAuditLogRoute
+  '/admin/restaurants': typeof AuthenticatedAdminRestaurantsRouteWithChildren
   '/restaurants/$id': typeof AuthenticatedRestaurantsIdRoute
+  '/admin/': typeof AuthenticatedAdminIndexRoute
   '/restaurants/': typeof AuthenticatedRestaurantsIndexRoute
+  '/admin/restaurants/archived': typeof AuthenticatedAdminRestaurantsArchivedRoute
+  '/admin/restaurants/': typeof AuthenticatedAdminRestaurantsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -83,32 +129,48 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/reports': typeof AuthenticatedReportsRoute
   '/upload': typeof AuthenticatedUploadRoute
+  '/admin/audit-log': typeof AuthenticatedAdminAuditLogRoute
   '/restaurants/$id': typeof AuthenticatedRestaurantsIdRoute
+  '/admin': typeof AuthenticatedAdminIndexRoute
   '/restaurants': typeof AuthenticatedRestaurantsIndexRoute
+  '/admin/restaurants/archived': typeof AuthenticatedAdminRestaurantsArchivedRoute
+  '/admin/restaurants': typeof AuthenticatedAdminRestaurantsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/compare': typeof AuthenticatedCompareRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/reports': typeof AuthenticatedReportsRoute
   '/_authenticated/upload': typeof AuthenticatedUploadRoute
+  '/_authenticated/admin/audit-log': typeof AuthenticatedAdminAuditLogRoute
+  '/_authenticated/admin/restaurants': typeof AuthenticatedAdminRestaurantsRouteWithChildren
   '/_authenticated/restaurants/$id': typeof AuthenticatedRestaurantsIdRoute
+  '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/restaurants/': typeof AuthenticatedRestaurantsIndexRoute
+  '/_authenticated/admin/restaurants/archived': typeof AuthenticatedAdminRestaurantsArchivedRoute
+  '/_authenticated/admin/restaurants/': typeof AuthenticatedAdminRestaurantsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/auth'
+    | '/admin'
     | '/compare'
     | '/dashboard'
     | '/reports'
     | '/upload'
+    | '/admin/audit-log'
+    | '/admin/restaurants'
     | '/restaurants/$id'
+    | '/admin/'
     | '/restaurants/'
+    | '/admin/restaurants/archived'
+    | '/admin/restaurants/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -117,19 +179,29 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/reports'
     | '/upload'
+    | '/admin/audit-log'
     | '/restaurants/$id'
+    | '/admin'
     | '/restaurants'
+    | '/admin/restaurants/archived'
+    | '/admin/restaurants'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/admin'
     | '/_authenticated/compare'
     | '/_authenticated/dashboard'
     | '/_authenticated/reports'
     | '/_authenticated/upload'
+    | '/_authenticated/admin/audit-log'
+    | '/_authenticated/admin/restaurants'
     | '/_authenticated/restaurants/$id'
+    | '/_authenticated/admin/'
     | '/_authenticated/restaurants/'
+    | '/_authenticated/admin/restaurants/archived'
+    | '/_authenticated/admin/restaurants/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -189,12 +261,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCompareRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/restaurants/': {
       id: '/_authenticated/restaurants/'
       path: '/restaurants'
       fullPath: '/restaurants/'
       preLoaderRoute: typeof AuthenticatedRestaurantsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/': {
+      id: '/_authenticated/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/restaurants/$id': {
       id: '/_authenticated/restaurants/$id'
@@ -203,10 +289,73 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRestaurantsIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/restaurants': {
+      id: '/_authenticated/admin/restaurants'
+      path: '/restaurants'
+      fullPath: '/admin/restaurants'
+      preLoaderRoute: typeof AuthenticatedAdminRestaurantsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/audit-log': {
+      id: '/_authenticated/admin/audit-log'
+      path: '/audit-log'
+      fullPath: '/admin/audit-log'
+      preLoaderRoute: typeof AuthenticatedAdminAuditLogRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/restaurants/': {
+      id: '/_authenticated/admin/restaurants/'
+      path: '/'
+      fullPath: '/admin/restaurants/'
+      preLoaderRoute: typeof AuthenticatedAdminRestaurantsIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRestaurantsRoute
+    }
+    '/_authenticated/admin/restaurants/archived': {
+      id: '/_authenticated/admin/restaurants/archived'
+      path: '/archived'
+      fullPath: '/admin/restaurants/archived'
+      preLoaderRoute: typeof AuthenticatedAdminRestaurantsArchivedRouteImport
+      parentRoute: typeof AuthenticatedAdminRestaurantsRoute
+    }
   }
 }
 
+interface AuthenticatedAdminRestaurantsRouteChildren {
+  AuthenticatedAdminRestaurantsArchivedRoute: typeof AuthenticatedAdminRestaurantsArchivedRoute
+  AuthenticatedAdminRestaurantsIndexRoute: typeof AuthenticatedAdminRestaurantsIndexRoute
+}
+
+const AuthenticatedAdminRestaurantsRouteChildren: AuthenticatedAdminRestaurantsRouteChildren =
+  {
+    AuthenticatedAdminRestaurantsArchivedRoute:
+      AuthenticatedAdminRestaurantsArchivedRoute,
+    AuthenticatedAdminRestaurantsIndexRoute:
+      AuthenticatedAdminRestaurantsIndexRoute,
+  }
+
+const AuthenticatedAdminRestaurantsRouteWithChildren =
+  AuthenticatedAdminRestaurantsRoute._addFileChildren(
+    AuthenticatedAdminRestaurantsRouteChildren,
+  )
+
+interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminAuditLogRoute: typeof AuthenticatedAdminAuditLogRoute
+  AuthenticatedAdminRestaurantsRoute: typeof AuthenticatedAdminRestaurantsRouteWithChildren
+  AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
+}
+
+const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminAuditLogRoute: AuthenticatedAdminAuditLogRoute,
+  AuthenticatedAdminRestaurantsRoute:
+    AuthenticatedAdminRestaurantsRouteWithChildren,
+  AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
+}
+
+const AuthenticatedAdminRouteWithChildren =
+  AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
+
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
   AuthenticatedCompareRoute: typeof AuthenticatedCompareRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
@@ -216,6 +365,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
   AuthenticatedCompareRoute: AuthenticatedCompareRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedReportsRoute: AuthenticatedReportsRoute,
