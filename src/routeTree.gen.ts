@@ -20,6 +20,7 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedRestaurantsIndexRouteImport } from './routes/_authenticated/restaurants.index'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedRestaurantsIdRouteImport } from './routes/_authenticated/restaurants.$id'
+import { Route as AuthenticatedCompareRangesRouteImport } from './routes/_authenticated/compare.ranges'
 import { Route as AuthenticatedAdminRestaurantsRouteImport } from './routes/_authenticated/admin.restaurants'
 import { Route as AuthenticatedAdminAuditLogRouteImport } from './routes/_authenticated/admin.audit-log'
 import { Route as AuthenticatedAdminRestaurantsIndexRouteImport } from './routes/_authenticated/admin.restaurants.index'
@@ -81,6 +82,12 @@ const AuthenticatedRestaurantsIdRoute =
     path: '/restaurants/$id',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedCompareRangesRoute =
+  AuthenticatedCompareRangesRouteImport.update({
+    id: '/ranges',
+    path: '/ranges',
+    getParentRoute: () => AuthenticatedCompareRoute,
+  } as any)
 const AuthenticatedAdminRestaurantsRoute =
   AuthenticatedAdminRestaurantsRouteImport.update({
     id: '/restaurants',
@@ -110,12 +117,13 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
-  '/compare': typeof AuthenticatedCompareRoute
+  '/compare': typeof AuthenticatedCompareRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/reports': typeof AuthenticatedReportsRoute
   '/upload': typeof AuthenticatedUploadRoute
   '/admin/audit-log': typeof AuthenticatedAdminAuditLogRoute
   '/admin/restaurants': typeof AuthenticatedAdminRestaurantsRouteWithChildren
+  '/compare/ranges': typeof AuthenticatedCompareRangesRoute
   '/restaurants/$id': typeof AuthenticatedRestaurantsIdRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/restaurants/': typeof AuthenticatedRestaurantsIndexRoute
@@ -125,11 +133,12 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/compare': typeof AuthenticatedCompareRoute
+  '/compare': typeof AuthenticatedCompareRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/reports': typeof AuthenticatedReportsRoute
   '/upload': typeof AuthenticatedUploadRoute
   '/admin/audit-log': typeof AuthenticatedAdminAuditLogRoute
+  '/compare/ranges': typeof AuthenticatedCompareRangesRoute
   '/restaurants/$id': typeof AuthenticatedRestaurantsIdRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/restaurants': typeof AuthenticatedRestaurantsIndexRoute
@@ -142,12 +151,13 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
-  '/_authenticated/compare': typeof AuthenticatedCompareRoute
+  '/_authenticated/compare': typeof AuthenticatedCompareRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/reports': typeof AuthenticatedReportsRoute
   '/_authenticated/upload': typeof AuthenticatedUploadRoute
   '/_authenticated/admin/audit-log': typeof AuthenticatedAdminAuditLogRoute
   '/_authenticated/admin/restaurants': typeof AuthenticatedAdminRestaurantsRouteWithChildren
+  '/_authenticated/compare/ranges': typeof AuthenticatedCompareRangesRoute
   '/_authenticated/restaurants/$id': typeof AuthenticatedRestaurantsIdRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/restaurants/': typeof AuthenticatedRestaurantsIndexRoute
@@ -166,6 +176,7 @@ export interface FileRouteTypes {
     | '/upload'
     | '/admin/audit-log'
     | '/admin/restaurants'
+    | '/compare/ranges'
     | '/restaurants/$id'
     | '/admin/'
     | '/restaurants/'
@@ -180,6 +191,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/upload'
     | '/admin/audit-log'
+    | '/compare/ranges'
     | '/restaurants/$id'
     | '/admin'
     | '/restaurants'
@@ -197,6 +209,7 @@ export interface FileRouteTypes {
     | '/_authenticated/upload'
     | '/_authenticated/admin/audit-log'
     | '/_authenticated/admin/restaurants'
+    | '/_authenticated/compare/ranges'
     | '/_authenticated/restaurants/$id'
     | '/_authenticated/admin/'
     | '/_authenticated/restaurants/'
@@ -289,6 +302,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRestaurantsIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/compare/ranges': {
+      id: '/_authenticated/compare/ranges'
+      path: '/ranges'
+      fullPath: '/compare/ranges'
+      preLoaderRoute: typeof AuthenticatedCompareRangesRouteImport
+      parentRoute: typeof AuthenticatedCompareRoute
+    }
     '/_authenticated/admin/restaurants': {
       id: '/_authenticated/admin/restaurants'
       path: '/restaurants'
@@ -354,9 +374,20 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
 const AuthenticatedAdminRouteWithChildren =
   AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
 
+interface AuthenticatedCompareRouteChildren {
+  AuthenticatedCompareRangesRoute: typeof AuthenticatedCompareRangesRoute
+}
+
+const AuthenticatedCompareRouteChildren: AuthenticatedCompareRouteChildren = {
+  AuthenticatedCompareRangesRoute: AuthenticatedCompareRangesRoute,
+}
+
+const AuthenticatedCompareRouteWithChildren =
+  AuthenticatedCompareRoute._addFileChildren(AuthenticatedCompareRouteChildren)
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
-  AuthenticatedCompareRoute: typeof AuthenticatedCompareRoute
+  AuthenticatedCompareRoute: typeof AuthenticatedCompareRouteWithChildren
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
   AuthenticatedUploadRoute: typeof AuthenticatedUploadRoute
@@ -366,7 +397,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
-  AuthenticatedCompareRoute: AuthenticatedCompareRoute,
+  AuthenticatedCompareRoute: AuthenticatedCompareRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedReportsRoute: AuthenticatedReportsRoute,
   AuthenticatedUploadRoute: AuthenticatedUploadRoute,
@@ -385,13 +416,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
