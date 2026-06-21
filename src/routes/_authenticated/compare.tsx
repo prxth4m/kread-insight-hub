@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,7 +11,8 @@ import { EmptyState } from "@/components/empty-state";
 import { PeriodSelector } from "@/components/period-selector";
 import { type PeriodMode, getPeriodRange, toISODate } from "@/lib/period";
 import { METRICS, sumMetrics, formatMetric } from "@/lib/metrics";
-import { GitCompareArrows } from "lucide-react";
+import { GitCompareArrows, CalendarRange } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/compare")({
   component: ComparePage,
@@ -74,9 +75,14 @@ function ComparePage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Compare Restaurants</h1>
-        <p className="text-sm text-muted-foreground">All-metrics comparison · {cur.label}</p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Compare Restaurants</h1>
+          <p className="text-sm text-muted-foreground">All-metrics comparison · {cur.label}</p>
+        </div>
+        <Button asChild variant="outline" size="sm">
+          <Link to="/compare/ranges"><CalendarRange className="mr-1 h-4 w-4" /> Compare date ranges</Link>
+        </Button>
       </div>
 
       <Card>

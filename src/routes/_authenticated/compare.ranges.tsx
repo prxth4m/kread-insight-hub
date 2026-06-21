@@ -141,11 +141,6 @@ function CompareRangesPage() {
 
   const buckets = useMemo(() => {
     if (!rows || !validA || !validB) return null;
-    const inRange = (d: string, r: DateRange) => {
-      const t = new Date(d).getTime();
-      return t >= r.from!.setHours(0, 0, 0, 0) && t <= r.to!.setHours(23, 59, 59, 999);
-    };
-    // Note: setHours mutates — copy first
     const aFrom = new Date(rangeA!.from!); aFrom.setHours(0, 0, 0, 0);
     const aTo = new Date(rangeA!.to!); aTo.setHours(23, 59, 59, 999);
     const bFrom = new Date(rangeB!.from!); bFrom.setHours(0, 0, 0, 0);
@@ -160,8 +155,6 @@ function CompareRangesPage() {
       const t = new Date(r.date).getTime();
       return t >= bFrom.getTime() && t <= bTo.getTime();
     });
-    // Suppress unused-var lint via void
-    void inRange;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const distinctDays = (rs: any[]) => new Set(rs.map((r) => r.date)).size;
     return {
