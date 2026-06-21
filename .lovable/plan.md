@@ -1,96 +1,55 @@
-# Kread Insights — Internal Restaurant Analytics Platform
+## Feature 1 — Universal upload with auto-cleaning
 
-This re-issues the previously approved plan so you can switch to build mode and begin implementation.
+### Parsing layer (`src/lib/csv-process.ts` → rename concept, file stays for compatibility)
 
-## 1. Architecture & Stack
-- Keep the current TanStack Start + React 19 + Tailwind v4 + shadcn/ui project (no Next.js migration — TanStack Start already provides SSR, route protection via `_authenticated` layouts, and server functions/routes that cover everything NextAuth + Next middleware would).
-- Enable **Lovable Cloud** (Supabase under the hood) for Postgres + Auth + Storage + RLS. Auth uses Cloud's email/password (no NextAuth).
-- FastAPI is **not** a fit on this platform — server runs on Cloudflare Workers (no Python). All CSV processing, anomaly detection, aggregation, PDF/Excel/CSV generation runs in **TanStack server functions / server routes** in TypeScript. Libraries: `papaparse` (CSV), `xlsx` (Excel), `pdf-lib` or HTML-to-PDF via a serverless-friendly route for PDFs.
-- Branding: "Kread Insights" everywhere (title, sidebar, head metadata, exports, login, footer).
+- Add `parseFile(file)` dispatcher that picks parser by extension/MIME and returns the existing `ParseResult` shape unchanged:
+  - `.csv` → existing `Papa.parse` path.
+  - `.xls` / `.xlsx` → `xlsx` (SheetJS): read first sheet, `sheet_to_json({ defval: "", raw: false })`, feed rows through the same row-normalizer used by CSV.
+  - `.pdf` → use `pdfjs-dist` (already common, low-footprint) to extract text per page, then run a simple column-clustering table extractor. If no row with the required `Restaurant` + `Date` columns can be assembled, return a `ParseResult` with a clear `errors[]` entry ("No tabular data detected in PDF — please export as CSV/XLSX") and zero rows.
+- Extract row-normalization into a shared helper used by all three paths:
+  - Trim every cell, collapse internal whitespace.
+  - Expand `toNumber` to also strip `$`, `€`, thousand separators, parenthesized negatives.
+  - Expand `toISODate` to also accept `Mon DD, YYYY`, `DD Mon YYYY`, Excel serial numbers (when `xlsx` returns them).
+  - Drop fully-empty rows silently; rows missing only `Restaurant` or `Date` become warnings (already behavior); rows where every metric is empty become a warning, not an error.
+- Keep `ParsedRow` / `ParseResult` exactly as-is so `upload.tsx` consumers don't fork.
 
-## 2. Database Schema (migrations)
-Tables (all in `public`, with GRANTs + RLS):
-- `profiles` (id → auth.users, full_name, email)
-- `user_roles` (user_id, role enum `admin`|`viewer`) + `has_role()` security-definer fn
-- `restaurants` (id, name unique, display_name, platform enum `zomato`|`swiggy` default zomato, status, is_archived, archived_at, archived_by, archive_reason, timestamps)
-- `uploaded_files` (id, file_name, file_size, uploaded_by, uploaded_at, row_count, status, error_details jsonb)
-- `raw_imports` (id, uploaded_file_id, restaurant_id, date, raw_row_data jsonb)
-- `daily_metrics` (restaurant_id, date, + all 13 metrics: sales, delivered_orders, aov, impressions, menu_to_order, menu_to_cart, cart_to_order, sales_from_ads, ad_ctr, ads_orders, ads_impressions, ads_spend, ads_roi, gross_sales_from_offers, orders_with_offers, discount_given, effective_discount). Unique (restaurant_id, date).
-- `weekly_aggregates`, `monthly_aggregates` (same metrics + period_start, period_end)
-- `alerts` (restaurant_id, metric_name, severity, current_value, previous_value, pct_change, detected_at, acknowledged, acknowledged_by, acknowledged_at)
-- `reports` (generated_by, report_type, period_start, period_end, restaurant_ids[], format, storage_path, generated_at)
-- `audit_logs` (user_id, action, target_type, target_id, metadata jsonb, created_at)
+### Restaurant fuzzy matching
 
-RLS: authenticated read on most tables; writes restricted via `has_role(auth.uid(), 'admin')`. Indexes on hot paths.
+- Add `normalizeName(s)`: lowercase, trim, strip punctuation, collapse spaces.
+- In `commitImport`, build the lookup map keyed by `normalizeName(restaurants.name)` and also try `normalizeName(restaurants.display_name)`. Same normalization on the CSV `restaurant_name`.
+- New helper `resolveRestaurantMatches(parsed)` (runs at preview time, not just at commit) returning `{ matched, unmatched: { csvName, suggestion? }[] }`. Suggestion uses simple Levenshtein against existing names with a small threshold.
 
-## 3. Auth & Route Protection
-- Cloud email/password sign-in at `/auth`. First-registered user auto-granted admin via trigger; subsequent users default viewer.
-- Use the integration-managed `_authenticated` layout to gate `/dashboard`, `/restaurants`, `/restaurants/$id`, `/compare`, `/reports`, `/upload`, `/admin/*`.
-- Admin-only routes (`/upload`, `/admin/*`) further gated by a nested `_admin` layout that checks `has_role` via server fn and redirects viewers.
-- All server functions use `requireSupabaseAuth` middleware; admin actions additionally check `has_role`. Public/share endpoints: none.
+### Storage of original file
 
-## 4. App Shell
-- Collapsible shadcn Sidebar with: Overview, Restaurants, Compare, Reports, Upload (admin), Admin → (Restaurants, Archived, Audit Log).
-- Sticky header: breadcrumbs, global period selector, theme toggle, user menu with logout.
-- Footer label "Kread Insights".
+- Create a private Supabase Storage bucket `uploads` via `supabase--storage_create_bucket` (admin-only RLS on `storage.objects`). After parsing, upload the raw file as `uploads/{user_id}/{uuid}-{filename}`.
+- Extend `uploaded_files` insert (no schema change — use existing `summary` jsonb to also stash `storage_path`; if a dedicated column is wanted later, that's a separate migration outside this work).
 
-## 5. Restaurant Management (admin)
-- `/admin/restaurants`: TanStack Table (sort/search/filter/column-visibility/pagination/CSV export). Add/Edit via Sheet + react-hook-form + Zod. Archive via AlertDialog requiring reason. No seed — all 32 added through UI.
-- `/admin/restaurants/archived`: list archived with Restore and (gated) Permanent Delete (typed-name confirmation).
-- Every action writes `audit_logs`.
+### Upload UI (`src/routes/_authenticated/upload.tsx`)
 
-## 6. CSV Upload Pipeline (admin)
-- `/upload`: drag-and-drop card; stepper Upload → Validate → Process → Confirm.
-- Server fn parses CSV with papaparse, validates required columns, coerces types, dedupes, fuzzy-matches restaurant names against active restaurants, returns preview + warnings.
-- Confirmation step upserts into `raw_imports` + `daily_metrics`, recomputes weekly/monthly aggregates for affected dates, runs anomaly detection, logs to `uploaded_files` + `audit_logs`.
-- Repeated uploads supported; same (restaurant_id, date) rows upsert.
+- `<input accept=".csv,.xls,.xlsx,.pdf">`; dropzone copy updated to list supported formats.
+- Step indicator kept (`select/validate/preview/processing/done`).
+- Preview step:
+  - New "Unmatched restaurants" section listing each unmatched CSV name with the closest suggestion and an inline **Create restaurant** button. Clicking it calls the same `supabase.from("restaurants").insert(...)` used in `admin.restaurants.index.tsx`, then re-runs `resolveRestaurantMatches` so the row moves to "matched" without leaving the page.
+  - "Process & import" button disabled only when zero rows would be matched (not when any are unmatched — user is informed and can proceed).
+- After `commitImport` resolves, call `queryClient.invalidateQueries({ queryKey: ["dashboard"] })` and the other relevant keys (`compare`, `restaurants`) so dashboard reflects fresh data.
 
-## 7. Overview Dashboard `/dashboard`
-- Period toolbar: Today vs Yesterday, This Week vs Last Week, This Month vs Last Month, custom range.
-- KPI grid (Cards): Total Restaurants, Total Sales, Total Orders, Avg AOV, Avg ROI, Total Ad Spend, Total Offer Sales, Active Alerts. Each shows current, previous, abs Δ, % Δ, trend arrow, mini Recharts sparkline.
-- Top 5 / Bottom 5 performers panels; Rankings tabs (Most Improved, Highest ROI, Best Funnel).
-- Anomaly Alerts panel grouped by severity, click-through to restaurant detail.
-- Last-updated timestamp.
+## Feature 2 — Range-vs-range comparison
 
-## 8. Restaurant List `/restaurants`
-- TanStack Table: Name, Sales, Orders, AOV, ROI, Ad Spend, Last Active, Status, Actions. Export CSV/XLSX. Admin row actions: Edit, Archive.
+### New route `src/routes/_authenticated/compare.ranges.tsx` (`/compare/ranges`)
 
-## 9. Restaurant Detail `/restaurants/$id`
-- Header with name, status, last updated. Period tabs Daily/Weekly/Monthly + date/week/month picker.
-- Tabs: Overview, Sales, Customer Funnel, Marketing. Each metric: current, previous, Δ, %Δ, trend badge, Recharts trend chart via ChartContainer.
-- Restaurant-scoped anomaly panel.
+- Add a link to it from existing `/compare` page header ("Compare date ranges →") so the existing restaurant-vs-restaurant page stays untouched.
+- State: `restaurantIds: string[]` (multi-select via existing shadcn Command/Popover combobox, defaulting to all active), `rangeA: { from, to }`, `rangeB: { from, to }`.
+- Defaults: A = this week (Mon–today), B = last week (same length, prior 7 days). Quick-preset buttons: This week vs Last week, Last 7d vs Prior 7d, This month vs Last month, MTD vs Same period last month, Custom.
+- Two `Calendar` instances (`mode="range"`, `numberOfMonths={2}`) in `Popover`s, with `pointer-events-auto` per the datepicker rule. Popover gives the smooth open/close transition — no new animation lib.
+- Single react-query call: fetch `daily_metrics` `.in("restaurant_id", restaurantIds).gte("date", min(A.from,B.from)).lte("date", max(A.to,B.to))`, then split client-side into A/B buckets.
+- Reuse `sumMetrics`, `formatMetric`, `METRICS`, and the grouped (`sales`/`funnel`/`marketing`) table layout from `compare.tsx` — render side-by-side "Range A" vs "Range B" columns with Δ, % Δ, and the existing winner-badge logic (`m.higherIsBetter`).
+- Header strip shows actual day counts per range (`A: 7 days · B: 5 days (2 missing)`) computed from the distinct dates returned per bucket so partial data is explicit.
+- Empty-state when no restaurants selected, skeleton while loading, "no data in this range" alert per side when its bucket is empty.
 
-## 10. Compare `/compare`
-- Two restaurant selectors + period context (Daily/Weekly/Monthly + picker).
-- Default: **All Metrics Overview** scorecard table (Metric, A, B, Δ, %Δ, Winner) grouped by Sales / Funnel / Marketing.
-- Top KPI summary cards ("A leads in X of 13"); grouped Recharts bar charts.
-- Auto-generated NL insight summary.
-- Click any metric row → expanded single-metric drill-down chart.
-- Selections persisted in URL search params for shareable links.
+## Technical notes
 
-## 11. Reports `/reports`
-- Controls: type (Daily/Weekly/Fortnightly/Monthly), period picker, restaurant multi-select, format (PDF/Excel/CSV).
-- Server fn assembles report data; PDF via HTML→PDF rendering (server route), Excel via `xlsx`, CSV native. Files written to Cloud Storage; `reports` row records metadata.
-- Inline preview: Executive Summary, KPI block, trend charts, rankings, anomalies, narrative.
-- Reports history table with download links. Viewers can generate + export.
-
-## 12. Anomaly Detection
-- Thresholds (warning / critical): Sales 20/30%, Orders 20/30%, Impressions 30/50%, ROI 25/40%, Funnel conv. 15/25%, Discount spike 50% warning.
-- Runs after each upload; on-demand button in admin. Inserts into `alerts`. Acknowledge action sets flags + logs audit.
-
-## 13. Admin
-- `/admin/audit-log`: filterable TanStack Table (action, date range, user) with CSV export.
-- `/admin`: summary cards (users, uploads, recent activity, system health).
-
-## 14. Exports
-- PDF/Excel/CSV all generated server-side from the same processed tables that drive the dashboard so values match exactly. Proper ₹ and % formatting, UTF-8.
-
-## 15. Polish
-- Skeletons on all data pages, Empty states on empty tables, Sonner toasts, error boundaries, design-token-only colors, dark mode, keyboard accessibility, responsive sidebar (Sheet on mobile), horizontal table scroll.
-
-## Technical notes (for the build)
-- Stack stays TanStack Start; no Next.js, no FastAPI, no separate backend repo. This is the only platform-compatible path and preserves every functional requirement.
-- Cloud Auth replaces NextAuth — same UX (email/password, HTTP-only cookies, session expiration, logout) with less infrastructure.
-- All processing libraries chosen are Worker-compatible.
-
-Switch to build mode to begin.
+- New dep: `pdfjs-dist` (PDF text extraction; pure JS, works in Worker). Add via `bun add`.
+- `xlsx` already present — use `XLSX.read(arrayBuffer, { type: "array", cellDates: true })`.
+- All parsing remains client-side (existing pattern). Only the raw file upload to Storage and the existing `daily_metrics` upsert happen server-side via the supabase client.
+- React-query keys to invalidate after commit: `["dashboard"]`, `["compare"]`, `["compare-restaurants"]`, `["restaurants"]`, `["alerts"]`.
+- Security findings flagged in the panel are **out of scope** per the request and will not be modified.
