@@ -16,7 +16,7 @@ const RULES: Rule[] = [
   { metric: "delivered_orders", label: "Orders", higherIsBetter: true, warningPct: 20, criticalPct: 30 },
   { metric: "impressions", label: "Impressions", higherIsBetter: true, warningPct: 30, criticalPct: 50 },
   { metric: "ads_roi", label: "ROI", higherIsBetter: true, warningPct: 25, criticalPct: 40 },
-  { metric: "menu_to_order", label: "Menu→Order", higherIsBetter: true, warningPct: 15, criticalPct: 25 },
+  { metric: "impressions_to_menu", label: "Impressions→Menu", higherIsBetter: true, warningPct: 15, criticalPct: 25 },
   { metric: "cart_to_order", label: "Cart→Order", higherIsBetter: true, warningPct: 15, criticalPct: 25 },
 ];
 
