@@ -101,73 +101,148 @@ export type Database = {
         Row: {
           ad_ctr: number | null
           ads_impressions: number | null
+          ads_menu_opens: number | null
           ads_orders: number | null
           ads_roi: number | null
           ads_spend: number | null
           average_order_value: number | null
+          average_rating: number | null
+          bad_orders: number | null
+          breakfast_orders: number | null
+          cart_builds: number | null
           cart_to_order: number | null
           created_at: string
           date: string
           delivered_orders: number | null
+          dinner_orders: number | null
           discount_given: number | null
           effective_discount: number | null
+          for_accuracy: number | null
           gross_sales_from_offers: number | null
           id: string
           impressions: number | null
+          impressions_to_menu: number | null
+          kpt_delayed_orders: number | null
+          kpt_minutes: number | null
+          lapsed_user_orders: number | null
+          late_night_orders: number | null
+          lost_sales: number | null
+          lunch_orders: number | null
+          market_share: number | null
+          menu_opens: number | null
           menu_to_cart: number | null
-          menu_to_order: number | null
+          new_user_orders: number | null
+          offline_hours: number | null
+          online_pct: number | null
           orders_with_offers: number | null
+          placed_orders: number | null
+          poor_rated_orders: number | null
+          rated_orders: number | null
+          rejected_orders: number | null
+          repeat_user_orders: number | null
           restaurant_id: string
           sales: number | null
           sales_from_ads: number | null
+          snacks_orders: number | null
+          total_complaints: number | null
           updated_at: string
         }
         Insert: {
           ad_ctr?: number | null
           ads_impressions?: number | null
+          ads_menu_opens?: number | null
           ads_orders?: number | null
           ads_roi?: number | null
           ads_spend?: number | null
           average_order_value?: number | null
+          average_rating?: number | null
+          bad_orders?: number | null
+          breakfast_orders?: number | null
+          cart_builds?: number | null
           cart_to_order?: number | null
           created_at?: string
           date: string
           delivered_orders?: number | null
+          dinner_orders?: number | null
           discount_given?: number | null
           effective_discount?: number | null
+          for_accuracy?: number | null
           gross_sales_from_offers?: number | null
           id?: string
           impressions?: number | null
+          impressions_to_menu?: number | null
+          kpt_delayed_orders?: number | null
+          kpt_minutes?: number | null
+          lapsed_user_orders?: number | null
+          late_night_orders?: number | null
+          lost_sales?: number | null
+          lunch_orders?: number | null
+          market_share?: number | null
+          menu_opens?: number | null
           menu_to_cart?: number | null
-          menu_to_order?: number | null
+          new_user_orders?: number | null
+          offline_hours?: number | null
+          online_pct?: number | null
           orders_with_offers?: number | null
+          placed_orders?: number | null
+          poor_rated_orders?: number | null
+          rated_orders?: number | null
+          rejected_orders?: number | null
+          repeat_user_orders?: number | null
           restaurant_id: string
           sales?: number | null
           sales_from_ads?: number | null
+          snacks_orders?: number | null
+          total_complaints?: number | null
           updated_at?: string
         }
         Update: {
           ad_ctr?: number | null
           ads_impressions?: number | null
+          ads_menu_opens?: number | null
           ads_orders?: number | null
           ads_roi?: number | null
           ads_spend?: number | null
           average_order_value?: number | null
+          average_rating?: number | null
+          bad_orders?: number | null
+          breakfast_orders?: number | null
+          cart_builds?: number | null
           cart_to_order?: number | null
           created_at?: string
           date?: string
           delivered_orders?: number | null
+          dinner_orders?: number | null
           discount_given?: number | null
           effective_discount?: number | null
+          for_accuracy?: number | null
           gross_sales_from_offers?: number | null
           id?: string
           impressions?: number | null
+          impressions_to_menu?: number | null
+          kpt_delayed_orders?: number | null
+          kpt_minutes?: number | null
+          lapsed_user_orders?: number | null
+          late_night_orders?: number | null
+          lost_sales?: number | null
+          lunch_orders?: number | null
+          market_share?: number | null
+          menu_opens?: number | null
           menu_to_cart?: number | null
-          menu_to_order?: number | null
+          new_user_orders?: number | null
+          offline_hours?: number | null
+          online_pct?: number | null
           orders_with_offers?: number | null
+          placed_orders?: number | null
+          poor_rated_orders?: number | null
+          rated_orders?: number | null
+          rejected_orders?: number | null
+          repeat_user_orders?: number | null
           restaurant_id?: string
           sales?: number | null
           sales_from_ads?: number | null
+          snacks_orders?: number | null
+          total_complaints?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -287,37 +362,46 @@ export type Database = {
           archive_reason: string | null
           archived_at: string | null
           archived_by: string | null
+          city: string | null
           created_at: string
           display_name: string
           id: string
           is_archived: boolean
           name: string
           platform: Database["public"]["Enums"]["platform_type"]
+          subzone: string | null
           updated_at: string
+          zomato_id: string | null
         }
         Insert: {
           archive_reason?: string | null
           archived_at?: string | null
           archived_by?: string | null
+          city?: string | null
           created_at?: string
           display_name: string
           id?: string
           is_archived?: boolean
           name: string
           platform?: Database["public"]["Enums"]["platform_type"]
+          subzone?: string | null
           updated_at?: string
+          zomato_id?: string | null
         }
         Update: {
           archive_reason?: string | null
           archived_at?: string | null
           archived_by?: string | null
+          city?: string | null
           created_at?: string
           display_name?: string
           id?: string
           is_archived?: boolean
           name?: string
           platform?: Database["public"]["Enums"]["platform_type"]
+          subzone?: string | null
           updated_at?: string
+          zomato_id?: string | null
         }
         Relationships: []
       }

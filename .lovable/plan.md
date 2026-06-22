@@ -1,55 +1,148 @@
-## Feature 1 — Universal upload with auto-cleaning
+## Goal
 
-### Parsing layer (`src/lib/csv-process.ts` → rename concept, file stays for compatibility)
+Rework parsing + restaurant identity to match the real Zomato daily report:
+pivoted long-format CSV, restaurants identified by Zomato ID (not name),
+new metric set, and an upload UI that never blocks on "unmatched" names.
 
-- Add `parseFile(file)` dispatcher that picks parser by extension/MIME and returns the existing `ParseResult` shape unchanged:
-  - `.csv` → existing `Papa.parse` path.
-  - `.xls` / `.xlsx` → `xlsx` (SheetJS): read first sheet, `sheet_to_json({ defval: "", raw: false })`, feed rows through the same row-normalizer used by CSV.
-  - `.pdf` → use `pdfjs-dist` (already common, low-footprint) to extract text per page, then run a simple column-clustering table extractor. If no row with the required `Restaurant` + `Date` columns can be assembled, return a `ParseResult` with a clear `errors[]` entry ("No tabular data detected in PDF — please export as CSV/XLSX") and zero rows.
-- Extract row-normalization into a shared helper used by all three paths:
-  - Trim every cell, collapse internal whitespace.
-  - Expand `toNumber` to also strip `$`, `€`, thousand separators, parenthesized negatives.
-  - Expand `toISODate` to also accept `Mon DD, YYYY`, `DD Mon YYYY`, Excel serial numbers (when `xlsx` returns them).
-  - Drop fully-empty rows silently; rows missing only `Restaurant` or `Date` become warnings (already behavior); rows where every metric is empty become a warning, not an error.
-- Keep `ParsedRow` / `ParseResult` exactly as-is so `upload.tsx` consumers don't fork.
+## 1. Database migration (single migration)
 
-### Restaurant fuzzy matching
+```sql
+ALTER TABLE public.restaurants
+  ADD COLUMN IF NOT EXISTS zomato_id TEXT,
+  ADD COLUMN IF NOT EXISTS subzone TEXT,
+  ADD COLUMN IF NOT EXISTS city TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS restaurants_zomato_id_key
+  ON public.restaurants (zomato_id) WHERE zomato_id IS NOT NULL;
 
-- Add `normalizeName(s)`: lowercase, trim, strip punctuation, collapse spaces.
-- In `commitImport`, build the lookup map keyed by `normalizeName(restaurants.name)` and also try `normalizeName(restaurants.display_name)`. Same normalization on the CSV `restaurant_name`.
-- New helper `resolveRestaurantMatches(parsed)` (runs at preview time, not just at commit) returning `{ matched, unmatched: { csvName, suggestion? }[] }`. Suggestion uses simple Levenshtein against existing names with a small threshold.
+-- Rename the misleading column; data is preserved.
+ALTER TABLE public.daily_metrics
+  RENAME COLUMN menu_to_order TO impressions_to_menu;
 
-### Storage of original file
+-- New metric columns (all NUMERIC DEFAULT 0)
+ALTER TABLE public.daily_metrics
+  ADD COLUMN IF NOT EXISTS market_share NUMERIC DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS average_rating NUMERIC DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS rated_orders NUMERIC DEFAULT 0,
+  ... (all 25 new keys from section 3/5 of the request) ...;
+```
 
-- Create a private Supabase Storage bucket `uploads` via `supabase--storage_create_bucket` (admin-only RLS on `storage.objects`). After parsing, upload the raw file as `uploads/{user_id}/{uuid}-{filename}`.
-- Extend `uploaded_files` insert (no schema change — use existing `summary` jsonb to also stash `storage_path`; if a dedicated column is wanted later, that's a separate migration outside this work).
+No RLS or policy changes. `restaurants_admin_insert` already covers inline
+auto-create.
 
-### Upload UI (`src/routes/_authenticated/upload.tsx`)
+## 2. `src/lib/metrics.ts`
 
-- `<input accept=".csv,.xls,.xlsx,.pdf">`; dropzone copy updated to list supported formats.
-- Step indicator kept (`select/validate/preview/processing/done`).
-- Preview step:
-  - New "Unmatched restaurants" section listing each unmatched CSV name with the closest suggestion and an inline **Create restaurant** button. Clicking it calls the same `supabase.from("restaurants").insert(...)` used in `admin.restaurants.index.tsx`, then re-runs `resolveRestaurantMatches` so the row moves to "matched" without leaving the page.
-  - "Process & import" button disabled only when zero rows would be matched (not when any are unmatched — user is informed and can proceed).
-- After `commitImport` resolves, call `queryClient.invalidateQueries({ queryKey: ["dashboard"] })` and the other relevant keys (`compare`, `restaurants`) so dashboard reflects fresh data.
+- `MetricKey` union: keep every existing key **except** rename `menu_to_order` → `impressions_to_menu`. Add the 25 new keys from the spec.
+- Rewrite the `METRICS` array with corrected `csvColumn` values matching the
+  exact "Metric" cell strings (e.g. `"Sales (Rs)"`, `"Delivered orders"`,
+  `"Impressions to menu (%)"`, etc.).
+- `average_order_value` stays in `METRICS` but is marked derived — add
+  `derived: true` to `MetricDef` and skip it in the csv→key lookup map.
+- Export a new `CSV_METRIC_LOOKUP: Map<string, MetricKey>` built from
+  every non-derived METRIC's `csvColumn`.
+- Remove `REQUIRED_CSV_COLUMNS` (no longer used by parser or UI).
+- `sumMetrics` / `formatMetric` / `emptyMetrics`: leave untouched except
+  `sumMetrics` must reference `impressions_to_menu` if it was averaging
+  `menu_to_order` (it doesn't currently — only `menu_to_cart`,
+  `cart_to_order`, etc.). Add an average for `impressions_to_menu` for
+  parity with the other funnel %s.
 
-## Feature 2 — Range-vs-range comparison
+## 3. `src/lib/csv-process.ts` — rewrite parser around the pivoted format
 
-### New route `src/routes/_authenticated/compare.ranges.tsx` (`/compare/ranges`)
+- Extend `ParsedRow`:
+  ```ts
+  interface ParsedRow {
+    restaurant_id_external: string;   // Zomato ID as string
+    restaurant_name: string;
+    subzone: string;
+    city: string;
+    date: string;                     // ISO
+    metrics: Record<string, number>;
+    _raw: Record<string, unknown>;
+  }
+  ```
+- Replace `normalizeRows` with `pivotRows(rawRows, headers)`:
+  1. Detect date columns via `/^\d{1,2}\s+[A-Za-z]+,?\s+\d{4}$/`; build
+     `{ header → isoDate }`. If zero date columns → push error
+     `"No date columns detected"`.
+  2. Validate required identity columns: `Restaurant ID`, `Restaurant name`,
+     `Metric`. Missing → error.
+  3. Group rows by `${restaurantId}__${isoDate}` into a map. For each cell:
+     resolve `MetricKey` via `CSV_METRIC_LOOKUP.get(row["Metric"])`; ignore
+     unknown metrics (push a one-time warning per unknown metric name).
+  4. After accumulation, derive `average_order_value = sales /
+     delivered_orders` when `delivered_orders > 0`.
+  5. Return `ParseResult` with new field `overviewCounts: Record<string,
+     number>` counting source rows per "Overview" group.
+- `ParseResult` adds `overviewCounts` and `uniqueRestaurantIds: string[]`;
+  keeps `uniqueRestaurants` (names) for display.
+- `parseCsv` / `parseXlsx` route through `pivotRows`. Drop `parsePdf` and
+  remove the `pdfjs-dist` import + `.pdf` branch in `parseFile`.
+- Drop `resolveRestaurantMatches`, `levenshtein`, and `normalizeName`
+  (no longer used anywhere — verify with rg before deleting; the only
+  consumer is `upload.tsx`, which is being rewritten in the same patch).
+- Rewrite `commitImport(parsed, file)`:
+  1. Fetch `restaurants` selecting `id, zomato_id`.
+  2. Build `Map<zomato_id, uuid>`.
+  3. From `parsed.rows`, derive unique
+     `{ zomato_id, restaurant_name, subzone, city }` set. For ids not in
+     the map, batch-insert via
+     `supabase.from("restaurants").upsert(payload, { onConflict: "zomato_id" }).select("id, zomato_id")`,
+     payload uses `name`/`display_name` = restaurant_name, plus subzone,
+     city, platform `"zomato"`. Merge returned uuids into the lookup map.
+  4. Track `autoCreated` (count + name list) from the insert response
+     (ids that were missing in step 2).
+  5. Upload original file to storage (unchanged best-effort logic).
+  6. Insert `uploaded_files` row (status `processing`).
+  7. Build `daily_metrics` rows: `{ restaurant_id: lookup.get(zomato_id),
+     date, ...metrics }`. Upsert in batches of 200 on
+     `restaurant_id,date`.
+  8. Update `uploaded_files` summary with
+     `{ matched, auto_created: autoCreated.length, auto_created_names,
+        warnings, storage_path, overview_counts }`.
+  9. Return `{ fileId, matched, autoCreated, autoCreatedNames, warnings,
+     storagePath, overviewCounts }`. No `unmatched` field — there isn't one.
 
-- Add a link to it from existing `/compare` page header ("Compare date ranges →") so the existing restaurant-vs-restaurant page stays untouched.
-- State: `restaurantIds: string[]` (multi-select via existing shadcn Command/Popover combobox, defaulting to all active), `rangeA: { from, to }`, `rangeB: { from, to }`.
-- Defaults: A = this week (Mon–today), B = last week (same length, prior 7 days). Quick-preset buttons: This week vs Last week, Last 7d vs Prior 7d, This month vs Last month, MTD vs Same period last month, Custom.
-- Two `Calendar` instances (`mode="range"`, `numberOfMonths={2}`) in `Popover`s, with `pointer-events-auto` per the datepicker rule. Popover gives the smooth open/close transition — no new animation lib.
-- Single react-query call: fetch `daily_metrics` `.in("restaurant_id", restaurantIds).gte("date", min(A.from,B.from)).lte("date", max(A.to,B.to))`, then split client-side into A/B buckets.
-- Reuse `sumMetrics`, `formatMetric`, `METRICS`, and the grouped (`sales`/`funnel`/`marketing`) table layout from `compare.tsx` — render side-by-side "Range A" vs "Range B" columns with Δ, % Δ, and the existing winner-badge logic (`m.higherIsBetter`).
-- Header strip shows actual day counts per range (`A: 7 days · B: 5 days (2 missing)`) computed from the distinct dates returned per bucket so partial data is explicit.
-- Empty-state when no restaurants selected, skeleton while loading, "no data in this range" alert per side when its bucket is empty.
+## 4. `src/routes/_authenticated/upload.tsx`
 
-## Technical notes
+- `ACCEPT = ".csv,.xls,.xlsx"`. Drop the PDF branch and the `Wand2`/`Plus`
+  icons that powered manual create.
+- Remove the `existingRestaurants` query, the `matchInfo` memo, the
+  unmatched-restaurants `Card`, `createRestaurantFor`, `creatingFor`,
+  and all the related state — auto-create is fully handled in
+  `commitImport`.
+- Preview step now shows:
+  - Existing badges (`totalRows`, `rows.length`, restaurant count).
+  - New line: `"{known} restaurants already known · {new} will be
+    auto-created"` computed from `parsed.uniqueRestaurantIds` vs a quick
+    one-shot client query of `restaurants.select("zomato_id")`.
+  - **Overview breakdown** card: small grid of badges from
+    `parsed.overviewCounts` (Sales / Customer experience / Customer funnel
+    / Customer segmentation / Ads / Offers) with row counts.
+- `Process & import` button disabled only when
+  `parsed.errors.length > 0 || parsed.rows.length === 0`.
+- Replace bottom "Expected columns" card with a single descriptive line:
+  > "Accepts Zomato daily report exports (.csv or .xlsx). Restaurant ID,
+  > date columns, and metric rows are auto-detected."
+- "Done" step summary now reads:
+  `"Imported {matched} rows · {autoCreated} restaurants auto-created
+   {alerts ? · {alerts} anomalies detected}"`.
 
-- New dep: `pdfjs-dist` (PDF text extraction; pure JS, works in Worker). Add via `bun add`.
-- `xlsx` already present — use `XLSX.read(arrayBuffer, { type: "array", cellDates: true })`.
-- All parsing remains client-side (existing pattern). Only the raw file upload to Storage and the existing `daily_metrics` upsert happen server-side via the supabase client.
-- React-query keys to invalidate after commit: `["dashboard"]`, `["compare"]`, `["compare-restaurants"]`, `["restaurants"]`, `["alerts"]`.
-- Security findings flagged in the panel are **out of scope** per the request and will not be modified.
+## 5. Out of scope (per constraints)
+
+- No changes to `sumMetrics`, `formatMetric`, `KpiCard`, dashboard,
+  compare, range-compare logic. New metric keys are additive — existing
+  views keep referencing the keys they already use.
+- No RLS / auth changes.
+- No PDF parser (explicit per spec).
+
+## 6. Execution order
+
+1. Submit DB migration (section 1) — wait for approval; `types.ts`
+   regenerates with the new columns and renamed column.
+2. Edit `src/lib/metrics.ts`.
+3. Rewrite `src/lib/csv-process.ts`.
+4. Rewrite preview/commit flow in `src/routes/_authenticated/upload.tsx`.
+5. Verify build; spot-check `compare.tsx`, `compare.ranges.tsx`,
+   `dashboard.tsx`, `anomaly.ts`, `restaurants.$id.tsx` for any direct
+   reference to `menu_to_order` — replace with `impressions_to_menu` if
+   present (otherwise leave alone).
