@@ -75,7 +75,7 @@ export type Database = {
           metadata: Json | null
           target_id: string | null
           target_type: string | null
-          user_id: string | null
+          user_id: string
         }
         Insert: {
           action: Database["public"]["Enums"]["audit_action"]
@@ -84,7 +84,7 @@ export type Database = {
           metadata?: Json | null
           target_id?: string | null
           target_type?: string | null
-          user_id?: string | null
+          user_id: string
         }
         Update: {
           action?: Database["public"]["Enums"]["audit_action"]
@@ -93,7 +93,7 @@ export type Database = {
           metadata?: Json | null
           target_id?: string | null
           target_type?: string | null
-          user_id?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -111,6 +111,10 @@ export type Database = {
           breakfast_orders: number | null
           cart_builds: number | null
           cart_to_order: number | null
+          complaints_missing_items: number | null
+          complaints_poor_packaging: number | null
+          complaints_poor_quality: number | null
+          complaints_wrong_order: number | null
           created_at: string
           date: string
           delivered_orders: number | null
@@ -132,6 +136,7 @@ export type Database = {
           menu_opens: number | null
           menu_to_cart: number | null
           new_user_orders: number | null
+          non_refunded_complaints: number | null
           offline_hours: number | null
           online_pct: number | null
           orders_with_offers: number | null
@@ -143,6 +148,7 @@ export type Database = {
           restaurant_id: string
           sales: number | null
           sales_from_ads: number | null
+          self_logs_other_ors: number | null
           snacks_orders: number | null
           total_complaints: number | null
           updated_at: string
@@ -160,6 +166,10 @@ export type Database = {
           breakfast_orders?: number | null
           cart_builds?: number | null
           cart_to_order?: number | null
+          complaints_missing_items?: number | null
+          complaints_poor_packaging?: number | null
+          complaints_poor_quality?: number | null
+          complaints_wrong_order?: number | null
           created_at?: string
           date: string
           delivered_orders?: number | null
@@ -181,6 +191,7 @@ export type Database = {
           menu_opens?: number | null
           menu_to_cart?: number | null
           new_user_orders?: number | null
+          non_refunded_complaints?: number | null
           offline_hours?: number | null
           online_pct?: number | null
           orders_with_offers?: number | null
@@ -192,6 +203,7 @@ export type Database = {
           restaurant_id: string
           sales?: number | null
           sales_from_ads?: number | null
+          self_logs_other_ors?: number | null
           snacks_orders?: number | null
           total_complaints?: number | null
           updated_at?: string
@@ -209,6 +221,10 @@ export type Database = {
           breakfast_orders?: number | null
           cart_builds?: number | null
           cart_to_order?: number | null
+          complaints_missing_items?: number | null
+          complaints_poor_packaging?: number | null
+          complaints_poor_quality?: number | null
+          complaints_wrong_order?: number | null
           created_at?: string
           date?: string
           delivered_orders?: number | null
@@ -230,6 +246,7 @@ export type Database = {
           menu_opens?: number | null
           menu_to_cart?: number | null
           new_user_orders?: number | null
+          non_refunded_complaints?: number | null
           offline_hours?: number | null
           online_pct?: number | null
           orders_with_offers?: number | null
@@ -241,6 +258,7 @@ export type Database = {
           restaurant_id?: string
           sales?: number | null
           sales_from_ads?: number | null
+          self_logs_other_ors?: number | null
           snacks_orders?: number | null
           total_complaints?: number | null
           updated_at?: string
