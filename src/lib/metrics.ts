@@ -40,9 +40,13 @@ export type MetricKey =
   | "snacks_orders"
   | "breakfast_orders"
   | "late_night_orders"
-  | "ads_menu_opens";
-
-// (extended below)
+  | "ads_menu_opens"
+  | "non_refunded_complaints"
+  | "complaints_poor_packaging"
+  | "complaints_poor_quality"
+  | "complaints_wrong_order"
+  | "complaints_missing_items"
+  | "self_logs_other_ors";
 
 export type MetricFormat = "currency" | "number" | "percent" | "multiplier";
 export type MetricGroup = "sales" | "funnel" | "marketing";
@@ -69,6 +73,12 @@ export const METRICS: MetricDef[] = [
   { key: "kpt_delayed_orders", label: "KPT+10 Delayed Orders", group: "sales", format: "number", higherIsBetter: false, csvColumn: "KPT+10 delayed orders" },
   { key: "poor_rated_orders", label: "Poor Rated Orders", group: "sales", format: "number", higherIsBetter: false, csvColumn: "Poor rated orders" },
   { key: "total_complaints", label: "Total Complaints", group: "sales", format: "number", higherIsBetter: false, csvColumn: "Total complaints" },
+  { key: "non_refunded_complaints", label: "Non-refunded Complaints", group: "sales", format: "number", higherIsBetter: false, csvColumn: "Non-refunded complaints" },
+  { key: "complaints_poor_packaging", label: "Complaints - Poor Packaging", group: "sales", format: "number", higherIsBetter: false, csvColumn: "Total complaints - Poor packaging" },
+  { key: "complaints_poor_quality", label: "Complaints - Poor Quality", group: "sales", format: "number", higherIsBetter: false, csvColumn: "Total complaints - Poor quality" },
+  { key: "complaints_wrong_order", label: "Complaints - Wrong Order", group: "sales", format: "number", higherIsBetter: false, csvColumn: "Total complaints - Wrong order" },
+  { key: "complaints_missing_items", label: "Complaints - Missing Items", group: "sales", format: "number", higherIsBetter: false, csvColumn: "Total complaints - Missing items" },
+  { key: "self_logs_other_ors", label: "Self Logs (Other ORs)", group: "sales", format: "number", higherIsBetter: false, csvColumn: "Self logs other ors" },
   { key: "lost_sales", label: "Lost Sales", group: "sales", format: "currency", higherIsBetter: false, csvColumn: "Lost sales (Rs)" },
   { key: "online_pct", label: "Online %", group: "sales", format: "percent", higherIsBetter: true, csvColumn: "Online %" },
   { key: "offline_hours", label: "Offline Hours", group: "sales", format: "number", higherIsBetter: false, csvColumn: "Offline time (in hours)" },
