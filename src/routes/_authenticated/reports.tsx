@@ -233,7 +233,15 @@ function openPdfPreview(type: string, period: { start: Date; end: Date }, summar
   const totalSales = summary.reduce((s, r) => s + (r.sales || 0), 0);
   const totalOrders = summary.reduce((s, r) => s + (r.delivered_orders || 0), 0);
   const top = [...summary].sort((a, b) => b.sales - a.sales).slice(0, 5);
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Kread Insights — ${type}</title>
+  const esc = (v: unknown) =>
+    String(v ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  const safeType = esc(type);
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Kread Insights — ${safeType}</title>
     <style>
       *{box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
       body{margin:0;padding:32px;color:#111;}
@@ -248,8 +256,8 @@ function openPdfPreview(type: string, period: { start: Date; end: Date }, summar
       .kpi b{display:block;font-size:18px;}
       .num{text-align:right;font-variant-numeric:tabular-nums;}
     </style></head><body>
-    <h1>Kread Insights — ${type[0].toUpperCase()}${type.slice(1)} Report</h1>
-    <div class="meta">${formatDate(period.start)} → ${formatDate(period.end)} · ${restaurants.length} restaurants · Prepared by KREAD Consulting</div>
+    <h1>Kread Insights — ${esc(type[0].toUpperCase() + type.slice(1))} Report</h1>
+    <div class="meta">${esc(formatDate(period.start))} → ${esc(formatDate(period.end))} · ${restaurants.length} restaurants · Prepared by KREAD Consulting</div>
     <h2>Executive Summary</h2>
     <div class="kpi">
       <div><span>Total Sales</span><b>${formatINR(totalSales)}</b></div>
@@ -259,11 +267,11 @@ function openPdfPreview(type: string, period: { start: Date; end: Date }, summar
     </div>
     <h2>Top Performers</h2>
     <table><thead><tr><th>#</th><th>Restaurant</th><th class="num">Sales</th><th class="num">Orders</th></tr></thead><tbody>
-      ${top.map((r, i) => `<tr><td>${i + 1}</td><td>${r.restaurant}</td><td class="num">${formatINR(r.sales)}</td><td class="num">${(r.delivered_orders || 0).toLocaleString("en-IN")}</td></tr>`).join("")}
+      ${top.map((r, i) => `<tr><td>${i + 1}</td><td>${esc(r.restaurant)}</td><td class="num">${formatINR(r.sales)}</td><td class="num">${(r.delivered_orders || 0).toLocaleString("en-IN")}</td></tr>`).join("")}
     </tbody></table>
     <h2>Per-Restaurant Detail</h2>
-    <table><thead><tr><th>Restaurant</th>${METRICS.map((m) => `<th class="num">${m.label}</th>`).join("")}</tr></thead><tbody>
-      ${summary.map((r) => `<tr><td>${r.restaurant}</td>${METRICS.map((m) => `<td class="num">${formatMetric(r[m.key], m.format)}</td>`).join("")}</tr>`).join("")}
+    <table><thead><tr><th>Restaurant</th>${METRICS.map((m) => `<th class="num">${esc(m.label)}</th>`).join("")}</tr></thead><tbody>
+      ${summary.map((r) => `<tr><td>${esc(r.restaurant)}</td>${METRICS.map((m) => `<td class="num">${esc(formatMetric(r[m.key], m.format))}</td>`).join("")}</tr>`).join("")}
     </tbody></table>
     <script>window.onload=()=>setTimeout(()=>window.print(),300);</script>
   </body></html>`;
