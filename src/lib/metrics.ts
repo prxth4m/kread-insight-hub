@@ -42,6 +42,8 @@ export type MetricKey =
   | "late_night_orders"
   | "ads_menu_opens";
 
+// (extended below)
+
 export type MetricFormat = "currency" | "number" | "percent" | "multiplier";
 export type MetricGroup = "sales" | "funnel" | "marketing";
 
