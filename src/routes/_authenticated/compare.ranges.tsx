@@ -32,6 +32,15 @@ export const Route = createFileRoute("/_authenticated/compare/ranges")({
   head: () => ({ meta: [{ title: "Compare Date Ranges — Kread Insights" }] }),
 });
 
+function fmtRange(r: DateRange | undefined) {
+  if (!r?.from) return "Pick a date range";
+  const opts: Intl.DateTimeFormatOptions = { day: "2-digit", month: "short", year: "numeric" };
+  const from = r.from.toLocaleDateString("en-IN", opts);
+  if (!r.to) return from;
+  const to = r.to.toLocaleDateString("en-IN", opts);
+  return `${from} → ${to}`;
+}
+
 function daysBetween(a: Date, b: Date): number {
   const ms = Math.abs(b.getTime() - a.getTime());
   return Math.floor(ms / 86400000) + 1;
