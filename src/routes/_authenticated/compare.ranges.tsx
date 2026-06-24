@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -33,9 +34,10 @@ export const Route = createFileRoute("/_authenticated/compare/ranges")({
 
 function fmtRange(r: DateRange | undefined) {
   if (!r?.from) return "Pick a date range";
-  const from = r.from.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  const opts: Intl.DateTimeFormatOptions = { day: "2-digit", month: "short", year: "numeric" };
+  const from = r.from.toLocaleDateString("en-IN", opts);
   if (!r.to) return from;
-  const to = r.to.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  const to = r.to.toLocaleDateString("en-IN", opts);
   return `${from} → ${to}`;
 }
 
@@ -241,8 +243,8 @@ function CompareRangesPage() {
               </PopoverContent>
             </Popover>
 
-            <RangePopover label="Range A" value={rangeA} onChange={setRangeA} />
-            <RangePopover label="Range B" value={rangeB} onChange={setRangeB} />
+            <DateRangePicker label="Range A" value={rangeA} onChange={setRangeA} />
+            <DateRangePicker label="Range B" value={rangeB} onChange={setRangeB} />
           </div>
         </CardContent>
       </Card>
@@ -331,21 +333,5 @@ function CompareRangesPage() {
         </>
       )}
     </div>
-  );
-}
-
-function RangePopover({ label, value, onChange }: { label: string; value: DateRange | undefined; onChange: (r: DateRange | undefined) => void }) {
-  return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button variant="outline" className={cn("justify-start text-left font-normal", !value?.from && "text-muted-foreground")}>
-          <CalendarIcon className="mr-2 h-4 w-4" />
-          <span className="truncate"><span className="mr-2 font-medium">{label}:</span>{fmtRange(value)}</span>
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
-        <Calendar mode="range" selected={value} onSelect={onChange} numberOfMonths={2} className={cn("p-3 pointer-events-auto")} />
-      </PopoverContent>
-    </Popover>
   );
 }
