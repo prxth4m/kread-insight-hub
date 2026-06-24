@@ -99,7 +99,11 @@ function UploadPage() {
       qc.invalidateQueries({ queryKey: ["admin-restaurants"] });
       qc.invalidateQueries({ queryKey: ["upload-known-zomato-ids"] });
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Import failed";
+      console.error("[Upload] Import failed:", e);
+      const msg =
+        e instanceof Error
+          ? [e.message, (e as any).details, (e as any).hint].filter(Boolean).join(" — ")
+          : "Import failed";
       toast.error(msg);
       setStep("preview");
     }
@@ -202,6 +206,10 @@ function UploadPage() {
                           </Badge>
                         ))}
                     </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Re-uploading data for dates already in the system is safe.
+                      Existing records are updated in place — values are never doubled.
+                    </p>
                   </CardContent>
                 </Card>
               )}
@@ -236,6 +244,17 @@ function UploadPage() {
 
           {step === "done" && summary && (
             <div className="space-y-3">
+              {summary.isDuplicate && (
+                <Alert variant="default" className="border-amber-200 bg-amber-50">
+                  <AlertCircle className="h-4 w-4 text-amber-600" />
+                  <AlertTitle className="text-amber-800">Possible duplicate upload</AlertTitle>
+                  <AlertDescription className="text-amber-700">
+                    A file with the same name covering {summary.dateRange.from} → {summary.dateRange.to} was
+                    previously imported. Your data has been safely merged — existing values were updated and no
+                    duplicates were created.
+                  </AlertDescription>
+                </Alert>
+              )}
               <Alert>
                 <CheckCircle2 className="h-4 w-4" />
                 <AlertTitle>Import complete</AlertTitle>
