@@ -50,6 +50,7 @@ export type MetricKey =
 
 export type MetricFormat = "currency" | "number" | "percent" | "multiplier";
 export type MetricGroup = "sales" | "funnel" | "marketing";
+export type MetricAggregation = "sum" | "avg" | "derived";
 
 export interface MetricDef {
   key: MetricKey;
@@ -59,14 +60,15 @@ export interface MetricDef {
   higherIsBetter: boolean;
   csvColumn: string;
   derived?: boolean;
+  aggregation?: MetricAggregation;
 }
 
 export const METRICS: MetricDef[] = [
   { key: "sales", label: "Sales", group: "sales", format: "currency", higherIsBetter: true, csvColumn: "Sales (Rs)" },
   { key: "delivered_orders", label: "Delivered Orders", group: "sales", format: "number", higherIsBetter: true, csvColumn: "Delivered orders" },
-  { key: "average_order_value", label: "Average Order Value", group: "sales", format: "currency", higherIsBetter: true, csvColumn: "__derived_aov__", derived: true },
-  { key: "market_share", label: "Market Share", group: "sales", format: "percent", higherIsBetter: true, csvColumn: "Market share (%)" },
-  { key: "average_rating", label: "Average Rating", group: "sales", format: "number", higherIsBetter: true, csvColumn: "Average rating" },
+  { key: "average_order_value", label: "Average Order Value", group: "sales", format: "currency", higherIsBetter: true, csvColumn: "__derived_aov__", derived: true, aggregation: "derived" },
+  { key: "market_share", label: "Market Share", group: "sales", format: "percent", higherIsBetter: true, csvColumn: "Market share (%)", aggregation: "avg" },
+  { key: "average_rating", label: "Average Rating", group: "sales", format: "number", higherIsBetter: true, csvColumn: "Average rating", aggregation: "avg" },
   { key: "rated_orders", label: "Rated Orders", group: "sales", format: "number", higherIsBetter: true, csvColumn: "Rated orders" },
   { key: "bad_orders", label: "Bad Orders", group: "sales", format: "number", higherIsBetter: false, csvColumn: "Bad orders" },
   { key: "rejected_orders", label: "Rejected Orders", group: "sales", format: "number", higherIsBetter: false, csvColumn: "Rejected orders" },
@@ -80,14 +82,14 @@ export const METRICS: MetricDef[] = [
   { key: "complaints_missing_items", label: "Complaints - Missing Items", group: "sales", format: "number", higherIsBetter: false, csvColumn: "Total complaints - Missing items" },
   { key: "self_logs_other_ors", label: "Self Logs (Other ORs)", group: "sales", format: "number", higherIsBetter: false, csvColumn: "Self logs other ors" },
   { key: "lost_sales", label: "Lost Sales", group: "sales", format: "currency", higherIsBetter: false, csvColumn: "Lost sales (Rs)" },
-  { key: "online_pct", label: "Online %", group: "sales", format: "percent", higherIsBetter: true, csvColumn: "Online %" },
+  { key: "online_pct", label: "Online %", group: "sales", format: "percent", higherIsBetter: true, csvColumn: "Online %", aggregation: "avg" },
   { key: "offline_hours", label: "Offline Hours", group: "sales", format: "number", higherIsBetter: false, csvColumn: "Offline time (in hours)" },
-  { key: "kpt_minutes", label: "KPT (minutes)", group: "sales", format: "number", higherIsBetter: false, csvColumn: "KPT (in minutes)" },
-  { key: "for_accuracy", label: "FOR Accuracy", group: "sales", format: "percent", higherIsBetter: true, csvColumn: "FOR accuracy (%)" },
+  { key: "kpt_minutes", label: "KPT (minutes)", group: "sales", format: "number", higherIsBetter: false, csvColumn: "KPT (in minutes)", aggregation: "avg" },
+  { key: "for_accuracy", label: "FOR Accuracy", group: "sales", format: "percent", higherIsBetter: true, csvColumn: "FOR accuracy (%)", aggregation: "avg" },
   { key: "impressions", label: "Impressions", group: "funnel", format: "number", higherIsBetter: true, csvColumn: "Impressions" },
-  { key: "impressions_to_menu", label: "Impressions to Menu", group: "funnel", format: "percent", higherIsBetter: true, csvColumn: "Impressions to menu (%)" },
-  { key: "menu_to_cart", label: "Menu to Cart", group: "funnel", format: "percent", higherIsBetter: true, csvColumn: "Menu to cart (%)" },
-  { key: "cart_to_order", label: "Cart to Order", group: "funnel", format: "percent", higherIsBetter: true, csvColumn: "Cart to orders (%)" },
+  { key: "impressions_to_menu", label: "Impressions to Menu", group: "funnel", format: "percent", higherIsBetter: true, csvColumn: "Impressions to menu (%)", aggregation: "avg" },
+  { key: "menu_to_cart", label: "Menu to Cart", group: "funnel", format: "percent", higherIsBetter: true, csvColumn: "Menu to cart (%)", aggregation: "avg" },
+  { key: "cart_to_order", label: "Cart to Order", group: "funnel", format: "percent", higherIsBetter: true, csvColumn: "Cart to orders (%)", aggregation: "avg" },
   { key: "menu_opens", label: "Menu Opens", group: "funnel", format: "number", higherIsBetter: true, csvColumn: "Menu opens" },
   { key: "cart_builds", label: "Cart Builds", group: "funnel", format: "number", higherIsBetter: true, csvColumn: "Cart builds" },
   { key: "placed_orders", label: "Placed Orders", group: "funnel", format: "number", higherIsBetter: true, csvColumn: "Placed Orders" },
@@ -100,16 +102,16 @@ export const METRICS: MetricDef[] = [
   { key: "breakfast_orders", label: "Breakfast Orders", group: "funnel", format: "number", higherIsBetter: true, csvColumn: "Breakfast orders" },
   { key: "late_night_orders", label: "Late Night Orders", group: "funnel", format: "number", higherIsBetter: true, csvColumn: "Late night orders" },
   { key: "sales_from_ads", label: "Sales from Ads", group: "marketing", format: "currency", higherIsBetter: true, csvColumn: "Sales from ads (Rs)" },
-  { key: "ad_ctr", label: "Ads CTR", group: "marketing", format: "percent", higherIsBetter: true, csvColumn: "Ads CTR (%)" },
+  { key: "ad_ctr", label: "Ads CTR", group: "marketing", format: "percent", higherIsBetter: true, csvColumn: "Ads CTR (%)", aggregation: "avg" },
   { key: "ads_orders", label: "Ads Orders", group: "marketing", format: "number", higherIsBetter: true, csvColumn: "Ads orders" },
   { key: "ads_impressions", label: "Ads Impressions", group: "marketing", format: "number", higherIsBetter: true, csvColumn: "Ads impressions" },
   { key: "ads_spend", label: "Ads Spend", group: "marketing", format: "currency", higherIsBetter: false, csvColumn: "Ads spend (Rs)" },
-  { key: "ads_roi", label: "Ads ROI", group: "marketing", format: "multiplier", higherIsBetter: true, csvColumn: "Ads ROI" },
+  { key: "ads_roi", label: "Ads ROI", group: "marketing", format: "multiplier", higherIsBetter: true, csvColumn: "Ads ROI", aggregation: "derived" },
   { key: "ads_menu_opens", label: "Ads Menu Opens", group: "marketing", format: "number", higherIsBetter: true, csvColumn: "Ads menu opens" },
   { key: "gross_sales_from_offers", label: "Gross Sales from Offers", group: "marketing", format: "currency", higherIsBetter: true, csvColumn: "Gross sales from offers (Rs)" },
   { key: "orders_with_offers", label: "Orders With Offers", group: "marketing", format: "number", higherIsBetter: true, csvColumn: "Orders with offers" },
   { key: "discount_given", label: "Discount Given", group: "marketing", format: "currency", higherIsBetter: false, csvColumn: "Discount given (Rs)" },
-  { key: "effective_discount", label: "Effective Discount", group: "marketing", format: "percent", higherIsBetter: false, csvColumn: "Effective discount (%)" },
+  { key: "effective_discount", label: "Effective Discount", group: "marketing", format: "percent", higherIsBetter: false, csvColumn: "Effective discount (%)", aggregation: "avg" },
 ];
 
 export const METRIC_BY_KEY = Object.fromEntries(METRICS.map((m) => [m.key, m])) as Record<MetricKey, MetricDef>;
@@ -136,22 +138,34 @@ export function emptyMetrics() {
 }
 
 export function sumMetrics<T extends Record<string, any>>(rows: T[]): Record<MetricKey, number> {
+  if (rows.length === 0) return emptyMetrics() as Record<MetricKey, number>;
   const out = emptyMetrics() as Record<MetricKey, number>;
-  rows.forEach((r) => METRICS.forEach((m) => { out[m.key] += Number(r[m.key] || 0); }));
-  // Recalc derived averages
-  if (out.delivered_orders > 0) out.average_order_value = out.sales / out.delivered_orders;
-  if (out.ads_spend > 0) out.ads_roi = out.sales_from_ads / out.ads_spend;
-  if (rows.length > 0) {
-    out.impressions_to_menu = avg(rows, "impressions_to_menu");
-    out.menu_to_cart = avg(rows, "menu_to_cart");
-    out.cart_to_order = avg(rows, "cart_to_order");
-    out.ad_ctr = avg(rows, "ad_ctr");
-    out.effective_discount = avg(rows, "effective_discount");
-  }
-  return out;
-}
+  const counts: Record<string, number> = {};
 
-function avg<T extends Record<string, any>>(rows: T[], key: string) {
-  const vals = rows.map((r) => Number(r[key] || 0));
-  return vals.reduce((a, b) => a + b, 0) / Math.max(vals.length, 1);
+  rows.forEach((r) => {
+    METRICS.forEach((m) => {
+      if (m.aggregation === "derived") return;
+      const v = Number(r[m.key] || 0);
+      out[m.key] += v;
+      if (m.aggregation === "avg") {
+        counts[m.key] = (counts[m.key] ?? 0) + (v !== 0 ? 1 : 0);
+      }
+    });
+  });
+
+  METRICS.forEach((m) => {
+    if (m.aggregation === "avg") {
+      const n = counts[m.key] ?? 0;
+      out[m.key] = n > 0 ? out[m.key] / n : 0;
+    }
+  });
+
+  if (out.delivered_orders > 0) {
+    out.average_order_value = out.sales / out.delivered_orders;
+  }
+  if (out.ads_spend > 0) {
+    out.ads_roi = out.sales_from_ads / out.ads_spend;
+  }
+
+  return out;
 }
