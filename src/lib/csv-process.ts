@@ -3,6 +3,18 @@ import * as XLSX from "xlsx";
 import { CSV_METRIC_LOOKUP, type MetricKey } from "./metrics";
 import { supabase } from "@/integrations/supabase/client";
 
+function toError(e: unknown, fallback = "Unknown error"): Error {
+  if (e instanceof Error) return e;
+  if (e && typeof (e as any).message === "string") {
+    const err = new Error((e as any).message);
+    (err as any).code = (e as any).code;
+    (err as any).details = (e as any).details;
+    (err as any).hint = (e as any).hint;
+    return err;
+  }
+  return new Error(String(e ?? fallback));
+}
+
 export interface ParsedRow {
   restaurant_id_external: string;
   restaurant_name: string;
@@ -204,6 +216,8 @@ export interface CommitResult {
   warnings: string[];
   storagePath: string | null;
   overviewCounts: Record<string, number>;
+  isDuplicate: boolean;
+  dateRange: { from: string; to: string };
 }
 
 export async function commitImport(parsed: ParseResult, file: File): Promise<CommitResult> {
@@ -214,7 +228,7 @@ export async function commitImport(parsed: ParseResult, file: File): Promise<Com
   const { data: existing, error: exErr } = await supabase
     .from("restaurants")
     .select("id, zomato_id");
-  if (exErr) throw exErr;
+  if (exErr) throw toError(exErr, "Failed to fetch existing restaurants");
 
   const lookup = new Map<string, string>();
   (existing ?? []).forEach((r) => {
@@ -249,16 +263,44 @@ export async function commitImport(parsed: ParseResult, file: File): Promise<Com
     }
   }
 
-  if (toCreate.length > 0) {
-    const { data: upserted, error: upErr } = await supabase
+  const createWarnings: string[] = [];
+  for (const rec of toCreate) {
+    const { data: created, error: cErr } = await supabase
       .from("restaurants")
-      .upsert(toCreate as never, { onConflict: "zomato_id" })
-      .select("id, zomato_id");
-    if (upErr) throw upErr;
-    (upserted ?? []).forEach((r) => {
-      if (r.zomato_id) lookup.set(String(r.zomato_id), r.id);
-    });
+      .upsert(rec as never, { onConflict: "zomato_id" })
+      .select("id, zomato_id")
+      .single();
+    if (cErr) {
+      createWarnings.push(
+        `Could not create restaurant "${rec.name}" (${rec.zomato_id}): ${cErr.message}`,
+      );
+    } else if (created?.zomato_id) {
+      lookup.set(String(created.zomato_id), created.id);
+    }
   }
+
+  // Determine date range covered by this file.
+  const firstDate = parsed.rows[0]?.date ?? "";
+  const dateRange = {
+    from: parsed.rows.reduce((min, r) => (r.date < min ? r.date : min), firstDate),
+    to: parsed.rows.reduce((max, r) => (r.date > max ? r.date : max), firstDate),
+  };
+
+  // Detect duplicate upload (same file name + same date range previously processed).
+  const { data: priorUploads } = await supabase
+    .from("uploaded_files")
+    .select("id, created_at, file_name, summary")
+    .eq("status", "processed")
+    .order("created_at", { ascending: false })
+    .limit(20);
+  const isDuplicate = (priorUploads ?? []).some((f) => {
+    const s = f.summary as any;
+    return (
+      f.file_name === file.name &&
+      s?.date_from === dateRange.from &&
+      s?.date_to === dateRange.to
+    );
+  });
 
   // 3. Upload original file to storage (best-effort).
   let storagePath: string | null = null;
@@ -283,10 +325,14 @@ export async function commitImport(parsed: ParseResult, file: File): Promise<Com
       uploaded_by: u.user.id,
       row_count: parsed.rows.length,
       status: "processing",
+      summary: {
+        date_from: dateRange.from,
+        date_to: dateRange.to,
+      } as never,
     })
     .select()
     .single();
-  if (fileErr || !fileRow) throw fileErr ?? new Error("File record failed");
+  if (fileErr || !fileRow) throw toError(fileErr, "File record failed");
 
   // 5. Build daily_metrics rows.
   const dmRows: Array<Record<string, unknown>> = [];
@@ -307,7 +353,7 @@ export async function commitImport(parsed: ParseResult, file: File): Promise<Com
     const { error } = await supabase
       .from("daily_metrics")
       .upsert(slice as never, { onConflict: "restaurant_id,date" });
-    if (error) throw error;
+    if (error) throw toError(error, `Batch upsert failed (batch starting row ${i})`);
   }
 
   await supabase
@@ -320,8 +366,11 @@ export async function commitImport(parsed: ParseResult, file: File): Promise<Com
         auto_created_names: autoCreatedNames,
         unresolved,
         warnings: parsed.warnings.slice(0, 50),
+        create_warnings: createWarnings.length > 0 ? createWarnings : undefined,
         overview_counts: parsed.overviewCounts,
         storage_path: storagePath,
+        date_from: dateRange.from,
+        date_to: dateRange.to,
       } as never,
     })
     .eq("id", fileRow.id);
@@ -331,8 +380,10 @@ export async function commitImport(parsed: ParseResult, file: File): Promise<Com
     matched: dmRows.length,
     autoCreated: autoCreatedNames.length,
     autoCreatedNames,
-    warnings: parsed.warnings,
+    warnings: [...parsed.warnings, ...createWarnings],
     storagePath,
     overviewCounts: parsed.overviewCounts,
+    isDuplicate,
+    dateRange,
   };
 }
