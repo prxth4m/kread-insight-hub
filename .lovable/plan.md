@@ -1,61 +1,69 @@
-# Plan: unify Compare + fix import + adopt "use client" range picker
+# Restructure navigation + comparison
 
-## 1. Fix the silent import failure (root cause)
+## 1. Delete obsolete routes
+- Remove `src/routes/_authenticated/compare.tsx`
+- Remove `src/routes/_authenticated/compare.ranges.tsx`
+- `routeTree.gen.ts` auto-regenerates. Grep for any leftover `to="/compare"` / `to="/compare/ranges"` references and remove them (notably the `<Link>` to `/compare/ranges` that lived inside the old compare page — already gone with the file).
 
-`uploaded_files` rows are all stuck in `status: 'processing'` and `daily_metrics` is empty. The
-row that contains the date-range summary is being created before the `daily_metrics` upsert,
-so the upsert is what's throwing. Several daily_metrics columns are typed `integer` but the
-Zomato CSV/XLSX cells routinely hold fractional values (e.g. averaged values, blank → 0,
-`Impressions` reported as `12345.0`). PostgREST rejects the batch with
-"invalid input syntax for integer".
+## 2. Sidebar (`src/components/layout/AppSidebar.tsx`)
+- Replace `mainItems` with just Overview, Restaurants, Reports.
+- Drop `GitCompareArrows` and `CalendarRange` from the `lucide-react` import.
+- Admin section unchanged.
 
-**Migration (already approved):** convert `delivered_orders`, `impressions`, `ads_orders`,
-`ads_impressions`, `orders_with_offers` from `integer` → `numeric` in `public.daily_metrics`.
+## 3. Dashboard refactor (`src/routes/_authenticated/dashboard.tsx`)
 
-**Code:** also harden `commitImport` so when the upsert (or any later step) throws we update
-the `uploaded_files` row to `status: 'failed'` with the Postgres `code/message/details/hint`
-stored in `error_details`. This way future failures surface in the UI instead of leaving the
-row in `processing` forever. Use the existing `toError` helper.
+### 3A. Fleet Overview (trim)
+- Keep header, `PeriodSelector`, last-updated timestamp, 8 KPI cards, and Anomaly Alerts card.
+- Remove the Top Performers and Weakest Performers cards, the `ranked` computation, the `byRest` map, and the `Trophy` / `TrendingDown` imports.
+- Let Anomaly Alerts occupy the full width below the KPI grid (single column card).
 
-## 2. Consolidate Compare into a single page (single restaurant, two date ranges)
+### 3B. Performance Comparison (new section, same page)
+- Divider with "Performance Comparison" heading between fleet overview and this block.
+- Local state: `cmpRestaurantId`, `cmpPreset` (default `"this-vs-last-week"`), `cmpRangeA`, `cmpRangeB` (both `DateRange | undefined`).
+- `CMP_PRESETS` defined module-scope with builders for: Today vs Yesterday, This week vs Last week, Last 7d vs Prior 7d, This month vs Last month, Custom.
+- `useEffect` on mount applies the `this-vs-last-week` preset.
+- Controls:
+  - Row 1: searchable `Select` of active restaurants (full width on mobile, ~320px on desktop), placeholder "Select a restaurant to analyse".
+  - Row 2: 5 preset pills (`Button` outline/default based on active). Clicking a preset with a builder sets both ranges; "Custom" reveals two `DateRangePicker`s labeled "Period A" / "Period B" — picking from them sets `cmpPreset = "custom"`.
+- Query: `["cmp", restaurantId, aFrom, aTo, bFrom, bTo]`, enabled when restaurant + both ranges set. Fetches `daily_metrics` for the restaurant between min and max date across both ranges in one call, then splits into `aRows` / `bRows` by ISO date.
+- Compute `aTotals`/`bTotals` via `sumMetrics`, then `deltas` array with `aVal`, `bVal`, `pctChange`, `improved` per `METRICS` entry.
+- Results: 2×2 grid (1 col mobile) of category cards:
+  - "Sales & Operations" → `group === "sales"`
+  - "Customer Funnel" → funnel + specified key allowlist
+  - "Customer Segments" → funnel + segment/daypart key allowlist
+  - "Ads & Offers" → `group === "marketing"`
+- Each card header shows `Period A: …  ·  Period B: …` via `fmtRange` helper.
+- Card body: flex rows (not table) — label, `aVal → bVal`, Δ% badge (green ↑ improved, red ↓ declined, muted "—" otherwise). Skip rows where both values are 0; if the entire category is skipped, show muted "No data for this period".
+- Empty state: `<EmptyState icon={TrendingUp} title="Select a restaurant" …/>` until a restaurant is chosen. Skeletons while loading.
+- No winner column, no scorecard, no verdict text.
 
-The user no longer wants to compare two restaurants; the only flow they need is
-"same restaurant, Range A vs Range B".
+### Imports added/removed
+- Add: `DateRangePicker`, `DateRange` type, period helpers (`startOfWeek`, `endOfWeek`, `startOfMonth`, `endOfMonth`, `shiftDays`, `toISODate`), `METRICS`, `sumMetrics`, `formatMetric`, `TrendingUp`.
+- Remove: `Trophy`, `TrendingDown`, and any imports only used by the removed cards.
 
-- Delete `src/routes/_authenticated/compare.ranges.tsx`.
-- Rewrite `src/routes/_authenticated/compare.tsx` to:
-  - pick exactly one restaurant,
-  - pick Range A and Range B via the new `DatePickerWithRange`,
-  - keep the preset buttons (This wk vs Last wk, Last 7d vs Prior 7d, This mo vs Last mo, MTD vs same last month),
-  - render the same three metric-group tables (sales / funnel / marketing), Δ, %Δ, winner, and
-    the "partial data" alert when actual days < expected days.
-- Remove the "Date Ranges" item from `AppSidebar` and the cross-page link button on Compare.
-- Update query cache key to `["compare-range", restaurantId, A.from, A.to, B.from, B.to]` and
-  invalidate it from `upload.tsx` (drop the old `compare`, `compare-ranges` keys).
+## 4. Anomaly dedupe
 
-## 3. Adopt the shadcn-style "use client" range picker
+### Migration
+```sql
+ALTER TABLE public.alerts ADD COLUMN IF NOT EXISTS data_date DATE;
+ALTER TABLE public.alerts DROP CONSTRAINT IF EXISTS alerts_restaurant_metric_date_key;
+ALTER TABLE public.alerts ADD CONSTRAINT alerts_restaurant_metric_date_key
+  UNIQUE (restaurant_id, metric_name, data_date);
+```
+Submitted via `supabase--migration` so types regenerate before code edits compile.
 
-Rewrite `src/components/ui/date-range-picker.tsx` to mirror the snippet the user supplied:
-- start the file with `"use client";`
-- export `DatePickerWithRange` built on `Field` + `FieldLabel` + `Popover` + `Calendar`
-  (`mode="range"`, `numberOfMonths={2}`),
-- keep a controlled `DateRangePicker` wrapper (label + value + onChange) for use inside the
-  Compare page so the existing call sites keep working.
-- Add the missing `Field`/`FieldLabel` primitives at `src/components/ui/field.tsx` (the snippet
-  imports them from `@/components/ui/field`, which doesn't exist yet in this project).
+### `src/lib/anomaly.ts`
+- Add `data_date: last.date` to each pushed alert object.
+- Switch `.insert(...)` to `.upsert(alerts, { onConflict: "restaurant_id,metric_name,data_date", ignoreDuplicates: true })`.
+- Extend `RULES` with `average_rating`, `total_complaints`, `online_pct`, `kpt_minutes` thresholds as specified.
 
-## Files to add / edit / delete
+## 5. Out of scope (do not modify)
+`src/lib/metrics.ts`, `src/lib/csv-process.ts`, `src/lib/period.ts`, `src/components/ui/date-range-picker.tsx`, `src/components/kpi-card.tsx`, admin routes, restaurants pages, upload flow, existing RLS migrations.
 
-- add: `src/components/ui/field.tsx`
-- edit: `src/components/ui/date-range-picker.tsx`
-- edit: `src/lib/csv-process.ts` (mark file as `failed` on error, store error_details)
-- edit: `src/routes/_authenticated/compare.tsx` (rewritten as date-range comparison)
-- edit: `src/routes/_authenticated/upload.tsx` (drop stale query-cache keys)
-- edit: `src/components/layout/AppSidebar.tsx` (remove Date Ranges item)
-- delete: `src/routes/_authenticated/compare.ranges.tsx`
-
-## Out of scope
-
-- Not touching auth, RLS, or the `has_role` SECURITY DEFINER warning surfaced by the linter
-  (already intentionally kept that way in earlier turns).
-- Not changing any other route, dashboard widget, or report logic.
+## Execution order
+1. Run the alerts migration (waits for approval; types regenerate).
+2. Delete the two compare route files.
+3. Edit `AppSidebar.tsx`.
+4. Rewrite `dashboard.tsx` with fleet trim + comparison section.
+5. Update `src/lib/anomaly.ts` (data_date + upsert + new RULES).
+6. Grep for stale `/compare` references and clean up.
