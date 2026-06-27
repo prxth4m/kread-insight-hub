@@ -15,12 +15,10 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedUploadRouteImport } from './routes/_authenticated/upload'
 import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
-import { Route as AuthenticatedCompareRouteImport } from './routes/_authenticated/compare'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedRestaurantsIndexRouteImport } from './routes/_authenticated/restaurants.index'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedRestaurantsIdRouteImport } from './routes/_authenticated/restaurants.$id'
-import { Route as AuthenticatedCompareRangesRouteImport } from './routes/_authenticated/compare.ranges'
 import { Route as AuthenticatedAdminRestaurantsRouteImport } from './routes/_authenticated/admin.restaurants'
 import { Route as AuthenticatedAdminAuditLogRouteImport } from './routes/_authenticated/admin.audit-log'
 import { Route as AuthenticatedAdminRestaurantsIndexRouteImport } from './routes/_authenticated/admin.restaurants.index'
@@ -55,11 +53,6 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedCompareRoute = AuthenticatedCompareRouteImport.update({
-  id: '/compare',
-  path: '/compare',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -81,12 +74,6 @@ const AuthenticatedRestaurantsIdRoute =
     id: '/restaurants/$id',
     path: '/restaurants/$id',
     getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedCompareRangesRoute =
-  AuthenticatedCompareRangesRouteImport.update({
-    id: '/ranges',
-    path: '/ranges',
-    getParentRoute: () => AuthenticatedCompareRoute,
   } as any)
 const AuthenticatedAdminRestaurantsRoute =
   AuthenticatedAdminRestaurantsRouteImport.update({
@@ -117,13 +104,11 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
-  '/compare': typeof AuthenticatedCompareRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/reports': typeof AuthenticatedReportsRoute
   '/upload': typeof AuthenticatedUploadRoute
   '/admin/audit-log': typeof AuthenticatedAdminAuditLogRoute
   '/admin/restaurants': typeof AuthenticatedAdminRestaurantsRouteWithChildren
-  '/compare/ranges': typeof AuthenticatedCompareRangesRoute
   '/restaurants/$id': typeof AuthenticatedRestaurantsIdRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/restaurants/': typeof AuthenticatedRestaurantsIndexRoute
@@ -133,12 +118,10 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/compare': typeof AuthenticatedCompareRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/reports': typeof AuthenticatedReportsRoute
   '/upload': typeof AuthenticatedUploadRoute
   '/admin/audit-log': typeof AuthenticatedAdminAuditLogRoute
-  '/compare/ranges': typeof AuthenticatedCompareRangesRoute
   '/restaurants/$id': typeof AuthenticatedRestaurantsIdRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/restaurants': typeof AuthenticatedRestaurantsIndexRoute
@@ -151,13 +134,11 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
-  '/_authenticated/compare': typeof AuthenticatedCompareRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/reports': typeof AuthenticatedReportsRoute
   '/_authenticated/upload': typeof AuthenticatedUploadRoute
   '/_authenticated/admin/audit-log': typeof AuthenticatedAdminAuditLogRoute
   '/_authenticated/admin/restaurants': typeof AuthenticatedAdminRestaurantsRouteWithChildren
-  '/_authenticated/compare/ranges': typeof AuthenticatedCompareRangesRoute
   '/_authenticated/restaurants/$id': typeof AuthenticatedRestaurantsIdRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/restaurants/': typeof AuthenticatedRestaurantsIndexRoute
@@ -170,13 +151,11 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/admin'
-    | '/compare'
     | '/dashboard'
     | '/reports'
     | '/upload'
     | '/admin/audit-log'
     | '/admin/restaurants'
-    | '/compare/ranges'
     | '/restaurants/$id'
     | '/admin/'
     | '/restaurants/'
@@ -186,12 +165,10 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
-    | '/compare'
     | '/dashboard'
     | '/reports'
     | '/upload'
     | '/admin/audit-log'
-    | '/compare/ranges'
     | '/restaurants/$id'
     | '/admin'
     | '/restaurants'
@@ -203,13 +180,11 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/admin'
-    | '/_authenticated/compare'
     | '/_authenticated/dashboard'
     | '/_authenticated/reports'
     | '/_authenticated/upload'
     | '/_authenticated/admin/audit-log'
     | '/_authenticated/admin/restaurants'
-    | '/_authenticated/compare/ranges'
     | '/_authenticated/restaurants/$id'
     | '/_authenticated/admin/'
     | '/_authenticated/restaurants/'
@@ -267,13 +242,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/compare': {
-      id: '/_authenticated/compare'
-      path: '/compare'
-      fullPath: '/compare'
-      preLoaderRoute: typeof AuthenticatedCompareRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/admin': {
       id: '/_authenticated/admin'
       path: '/admin'
@@ -301,13 +269,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/restaurants/$id'
       preLoaderRoute: typeof AuthenticatedRestaurantsIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/compare/ranges': {
-      id: '/_authenticated/compare/ranges'
-      path: '/ranges'
-      fullPath: '/compare/ranges'
-      preLoaderRoute: typeof AuthenticatedCompareRangesRouteImport
-      parentRoute: typeof AuthenticatedCompareRoute
     }
     '/_authenticated/admin/restaurants': {
       id: '/_authenticated/admin/restaurants'
@@ -374,20 +335,8 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
 const AuthenticatedAdminRouteWithChildren =
   AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
 
-interface AuthenticatedCompareRouteChildren {
-  AuthenticatedCompareRangesRoute: typeof AuthenticatedCompareRangesRoute
-}
-
-const AuthenticatedCompareRouteChildren: AuthenticatedCompareRouteChildren = {
-  AuthenticatedCompareRangesRoute: AuthenticatedCompareRangesRoute,
-}
-
-const AuthenticatedCompareRouteWithChildren =
-  AuthenticatedCompareRoute._addFileChildren(AuthenticatedCompareRouteChildren)
-
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
-  AuthenticatedCompareRoute: typeof AuthenticatedCompareRouteWithChildren
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
   AuthenticatedUploadRoute: typeof AuthenticatedUploadRoute
@@ -397,7 +346,6 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
-  AuthenticatedCompareRoute: AuthenticatedCompareRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedReportsRoute: AuthenticatedReportsRoute,
   AuthenticatedUploadRoute: AuthenticatedUploadRoute,
