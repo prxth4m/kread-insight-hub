@@ -92,8 +92,6 @@ function UploadPage() {
       );
       qc.invalidateQueries({ queryKey: ["dashboard"] });
       qc.invalidateQueries({ queryKey: ["compare"] });
-      qc.invalidateQueries({ queryKey: ["compare-ranges"] });
-      qc.invalidateQueries({ queryKey: ["compare-restaurants"] });
       qc.invalidateQueries({ queryKey: ["restaurants"] });
       qc.invalidateQueries({ queryKey: ["alerts"] });
       qc.invalidateQueries({ queryKey: ["admin-restaurants"] });

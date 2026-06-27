@@ -18,6 +18,10 @@ const RULES: Rule[] = [
   { metric: "ads_roi", label: "ROI", higherIsBetter: true, warningPct: 25, criticalPct: 40 },
   { metric: "impressions_to_menu", label: "Impressions→Menu", higherIsBetter: true, warningPct: 15, criticalPct: 25 },
   { metric: "cart_to_order", label: "Cart→Order", higherIsBetter: true, warningPct: 15, criticalPct: 25 },
+  { metric: "average_rating", label: "Rating", higherIsBetter: true, warningPct: 10, criticalPct: 15 },
+  { metric: "total_complaints", label: "Complaints", higherIsBetter: false, warningPct: 30, criticalPct: 50 },
+  { metric: "online_pct", label: "Online Time", higherIsBetter: true, warningPct: 15, criticalPct: 25 },
+  { metric: "kpt_minutes", label: "KPT (delivery time)", higherIsBetter: false, warningPct: 20, criticalPct: 35 },
 ];
 
 export async function detectAnomaliesForRestaurant(restaurantId: string, restaurantName: string, days = 30) {
@@ -42,6 +46,7 @@ export async function detectAnomaliesForRestaurant(restaurantId: string, restaur
     previous_value: number;
     pct_change: number;
     message: string;
+    data_date: string;
   }> = [];
 
   for (const rule of RULES) {
@@ -59,6 +64,7 @@ export async function detectAnomaliesForRestaurant(restaurantId: string, restaur
         previous_value: pre,
         pct_change: pct,
         message: `${restaurantName}: ${rule.label} ${pct < 0 ? "down" : "up"} ${Math.abs(pct).toFixed(1)}% vs previous day`,
+        data_date: (last as any).date,
       });
     } else if (drop >= rule.warningPct) {
       alerts.push({
@@ -69,12 +75,16 @@ export async function detectAnomaliesForRestaurant(restaurantId: string, restaur
         previous_value: pre,
         pct_change: pct,
         message: `${restaurantName}: ${rule.label} ${pct < 0 ? "down" : "up"} ${Math.abs(pct).toFixed(1)}% vs previous day`,
+        data_date: (last as any).date,
       });
     }
   }
 
   if (alerts.length > 0) {
-    await supabase.from("alerts").insert(alerts as never);
+    await supabase.from("alerts").upsert(alerts as never, {
+      onConflict: "restaurant_id,metric_name,data_date",
+      ignoreDuplicates: true,
+    });
   }
   return alerts;
 }

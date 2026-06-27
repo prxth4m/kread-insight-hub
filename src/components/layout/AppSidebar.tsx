@@ -2,8 +2,6 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard,
   Store,
-  GitCompareArrows,
-  CalendarRange,
   FileBarChart,
   Upload,
   ShieldCheck,
@@ -27,8 +25,6 @@ import { useAuth } from "@/hooks/use-auth";
 const mainItems = [
   { title: "Overview", url: "/dashboard", icon: LayoutDashboard },
   { title: "Restaurants", url: "/restaurants", icon: Store },
-  { title: "Compare", url: "/compare", icon: GitCompareArrows },
-  { title: "Date Ranges", url: "/compare/ranges", icon: CalendarRange },
   { title: "Reports", url: "/reports", icon: FileBarChart },
 ];
 

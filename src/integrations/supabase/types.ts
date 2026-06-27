@@ -20,6 +20,7 @@ export type Database = {
           acknowledged_at: string | null
           acknowledged_by: string | null
           current_value: number | null
+          data_date: string | null
           detected_at: string
           id: string
           message: string | null
@@ -34,6 +35,7 @@ export type Database = {
           acknowledged_at?: string | null
           acknowledged_by?: string | null
           current_value?: number | null
+          data_date?: string | null
           detected_at?: string
           id?: string
           message?: string | null
@@ -48,6 +50,7 @@ export type Database = {
           acknowledged_at?: string | null
           acknowledged_by?: string | null
           current_value?: number | null
+          data_date?: string | null
           detected_at?: string
           id?: string
           message?: string | null
